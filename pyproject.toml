@@ -1,0 +1,18 @@
+[tool.poetry]
+authors = ["Nathan Oliver"]
+description = "Use yfinance API to download stock data, refresh stock data using CI, transform data in SQL, and upload dataframe to AWS"
+name = "stock-data-pipeline"
+package-mode = false
+version = "0.0"
+
+[tool.poetry.dependencies]
+pandas = "*"
+python = "^3.11"
+
+[tool.poetry.dev-dependencies]
+doit = "0.36.0"
+tomli = "2.0.1"
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
