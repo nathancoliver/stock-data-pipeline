@@ -8,6 +8,7 @@ version = "0.0"
 [tool.poetry.dependencies]
 pandas = "*"
 python = "^3.11"
+yfinance = {path = "../../Finance/yfinance"}
 
 [tool.poetry.dev-dependencies]
 doit = "0.36.0"
