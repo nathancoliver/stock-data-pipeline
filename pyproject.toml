@@ -6,6 +6,9 @@ package-mode = false
 version = "0.0"
 
 [tool.poetry.dependencies]
+pandas = "*" 
+pyarrow = "*" 
+python = "^3.11" 
 yfinance = "0.2.54" # Use version 0.2.54 and sha fa3094daedf4a69e8af542e4bb171cbd3bd61862 if needed
 
 [tool.poetry.dev-dependencies]
