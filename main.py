@@ -33,10 +33,18 @@ def connect_postgresql_local_server():
     connection = psycopg2.connect(**DB_PARAMS)
     return connection, connection.cursor()
 
-stock_data_directory = Path("data")
-for stock in stocks:
-    collect_stock_data = CollectDailyData(stock, stock_data_directory)
-    stock_history = collect_stock_data.get_ticker_history()
 
+def create_stock_data_table(connection, cursor, ticker: str):
+    query = f"""CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume INT)"""
+    cursor.execute(query)
+    connection.commit()
+    cursor.execute(query)
+connection, cursor = connect_postgresql_local_server()
+
+stock_data_directory = Path("data")
+for ticker in tickers:
+    collect_stock_data = CollectDailyData(ticker)
+    stock_history = collect_stock_data.get_ticker_history()
+    create_stock_data_table(connection, cursor, ticker)
 
 print()
