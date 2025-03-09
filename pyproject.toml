@@ -14,6 +14,7 @@ yfinance = "0.2.54" # Use version 0.2.54 and sha fa3094daedf4a69e8af542e4bb171cb
 
 [tool.poetry.dev-dependencies]
 doit = "0.36.0"
+flake8 = "*"
 tomli = "2.0.1"
 
 [build-system]
