@@ -53,7 +53,12 @@ def create_stock_data_table(connection, cursor, ticker: str):
     query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume INT)"
     cursor = execute_query(cursor, query)
     connection.commit()
-    cursor.execute(query)
+
+
+def get_latest_date(cursor, ticker: str):
+    query = f"SELECT MAX(DATE) FROM {ticker}"
+    cursor = execute_query(cursor, query)
+    return cursor.fetchone()[0]
 
 
 def transform_stock_data(connection, ticker):
@@ -67,6 +72,7 @@ for ticker in tickers:
     create_stock_data_table(
         connection, cursor, ticker
     )  # Create blank table if table for stock does not exist
+    latest_date = get_latest_date(cursor, ticker)
     collect_stock_data = CollectDailyData(ticker)
     stock_history = collect_stock_data.get_ticker_history()
 transform_stock_data(cursor, ticker)
