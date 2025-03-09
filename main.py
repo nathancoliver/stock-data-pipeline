@@ -51,7 +51,4 @@ stock_data_directory = Path("data")
 for ticker in tickers:
     collect_stock_data = CollectDailyData(ticker)
     stock_history = collect_stock_data.get_ticker_history()
-    create_stock_data_table(connection, cursor, ticker)
 transform_stock_data(cursor, ticker)
-
-print()
