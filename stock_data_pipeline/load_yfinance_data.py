@@ -8,11 +8,23 @@ from typing import List
 
 class CollectDailyData:
 
-    def __init__(self, ticker, directory):
+    def __init__(
+        self, ticker, directory: Path = Path("."), save_as_feather: bool = False
+    ):
         self.ticker = ticker
-        self.directory = directory
-        file_name = f"{ticker}.feather"
-        self.file_path = Path(self.directory, file_name)
+        if directory == Path(".") and save_as_feather:
+            raise NameError(
+                "Cannot set save_as_feather to True and not specify a directory"
+            )
+        elif directory != Path(".") and not save_as_feather:
+            raise NameError(
+                "Cannot set save_as_feather to False and specify a directory"
+            )
+        if directory is not None:
+            self.directory = directory
+            file_name = f"{ticker}.feather"
+            self.file_path = Path(self.directory, file_name)
+        self.save_as_feather = save_as_feather
         end_date = datetime.now()
         start_date = end_date - pd.Timedelta(weeks=52 * 50)
         self.end_date = self.format_date_to_string(end_date)
@@ -70,7 +82,7 @@ class CollectDailyData:
             stock_history = self._download_ticker_history(
                 self.start_date, self.end_date
             )
-        if stock_history is not None:
+        if stock_history is not None and self.save_as_feather:
             self.save_ticker_history_to_feather(stock_history)
         return stock_history
 
