@@ -21,12 +21,13 @@ DB_PARAMS = {
 }
 
 # Create list of stocks
-stocks = []
+tickers = []
 config_directory = Path("config")
 stocks_file_path = Path(config_directory, "stocks.txt")
 with open(stocks_file_path, "r", encoding="utf-8") as file:
-    for stock in file:
-        stocks.append(stock.rstrip("\n"))
+    for ticker in file:
+        tickers.append(ticker.rstrip("\n"))
+
 
 def connect_postgresql_local_server():
     connection = psycopg2.connect(**DB_PARAMS)
