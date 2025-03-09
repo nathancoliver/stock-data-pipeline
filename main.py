@@ -35,8 +35,9 @@ def connect_postgresql_local_server():
 
 
 def create_stock_data_table(connection, cursor, ticker: str):
-    query = f"""CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume INT)"""
-    cursor.execute(query)
+    """Craete a table for stock if table does not exist."""
+    query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume INT)"
+    cursor = execute_query(cursor, query)
     connection.commit()
     cursor.execute(query)
 
@@ -49,6 +50,9 @@ connection, cursor = connect_postgresql_local_server()
 
 stock_data_directory = Path("data")
 for ticker in tickers:
+    create_stock_data_table(
+        connection, cursor, ticker
+    )  # Create blank table if table for stock does not exist
     collect_stock_data = CollectDailyData(ticker)
     stock_history = collect_stock_data.get_ticker_history()
 transform_stock_data(cursor, ticker)
