@@ -34,6 +34,14 @@ def connect_postgresql_local_server():
     return connection, connection.cursor()
 
 
+def execute_query(cursor, query, values=None):
+    if values:
+        cursor.execute(query, values)  # Use values to parameterize the query
+    else:
+        cursor.execute(query)
+    return cursor
+
+
 def create_stock_data_table(connection, cursor, ticker: str):
     """Craete a table for stock if table does not exist."""
     query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume INT)"
