@@ -42,6 +42,12 @@ def execute_query(cursor, query, values=None):
     return cursor
 
 
+def add_data(cursor, ticker, data):
+    query = f"""INSERT INTO {ticker} (date, open, high, low, close, volume) 
+           VALUES (%s, %s, %s, %s, %s, %s)"""
+    cursor = execute_query(cursor, query, values=data)
+
+
 def create_stock_data_table(connection, cursor, ticker: str):
     """Craete a table for stock if table does not exist."""
     query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume INT)"
