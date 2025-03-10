@@ -80,14 +80,26 @@ class CollectDailyData:
         ).sort_index()
         return stock_history[~stock_history.index.duplicated(keep="last")]
 
+    @staticmethod
+    def remove_time_zone_and_time_from_date(
+        stock_history: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """Remove time and timezone from stock_history Date index."""
+        stock_history.index = pd.DatetimeIndex(
+            stock_history.index.tz_localize(None).date
+        )
+        return stock_history
+
     def get_ticker_history(self):
         """Update stock data (if file exists), or download full stock data (if file does not exist)."""
 
         if self.file_path.exists():
-            stock_history = self._update_ticker_history()
+            stock_history = self.remove_time_zone_and_time_from_date(
+                self._update_ticker_history()
+            )
         else:
-            stock_history = self._download_ticker_history(
-                self.start_date, self.end_date
+            stock_history = self.remove_time_zone_and_time_from_date(
+                self._download_ticker_history(self.start_date, self.end_date)
             )
         if stock_history is not None and self.save_as_feather:
             self.save_ticker_history_to_feather(stock_history)
