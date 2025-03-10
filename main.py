@@ -5,6 +5,7 @@ Download stock data from Yahoo Finance, transform data in SQL, and load data int
 from pathlib import Path
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
 import psycopg2
+import pandas as pd
 from sqlalchemy import create_engine
 
 HOST = "localhost"
