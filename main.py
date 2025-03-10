@@ -79,6 +79,6 @@ for ticker in tickers:
         connection, cursor, ticker
     )  # Create blank table if table for stock does not exist
     latest_date = get_latest_date(cursor, ticker)
-    collect_stock_data = CollectDailyData(ticker)
+    collect_stock_data = CollectDailyData(ticker, latest_date=latest_date)
     stock_history = collect_stock_data.get_ticker_history()
 transform_stock_data(cursor, ticker)

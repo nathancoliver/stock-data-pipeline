@@ -9,7 +9,11 @@ from typing import List
 class CollectDailyData:
 
     def __init__(
-        self, ticker, directory: Path = Path("."), save_as_feather: bool = False
+        self,
+        ticker,
+        directory: Path = Path("."),
+        save_as_feather: bool = False,
+        latest_date: pd.DatetimeIndex | None = None,
     ):
         self.ticker = ticker
         if directory == Path(".") and save_as_feather:
@@ -25,7 +29,10 @@ class CollectDailyData:
             file_name = f"{ticker}.feather"
             self.file_path = Path(self.directory, file_name)
         self.save_as_feather = save_as_feather
-        end_date = datetime.now()
+        if latest_date is None:
+            end_date = datetime.now()
+        else:
+            end_date = latest_date
         start_date = end_date - pd.Timedelta(weeks=52 * 50)
         self.end_date = self.format_date_to_string(end_date)
         self.start_date = self.format_date_to_string(start_date)
