@@ -6,6 +6,7 @@ package-mode = false
 version = "0.0"
 
 [tool.poetry.dependencies]
+SQLAlchemy = "*" 
 pandas = "*" 
 psycopg2 = "*" 
 pyarrow = "*" 
