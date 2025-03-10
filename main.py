@@ -5,6 +5,7 @@ Download stock data from Yahoo Finance, transform data in SQL, and load data int
 from pathlib import Path
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
 import psycopg2
+from sqlalchemy import create_engine
 
 HOST = "localhost"
 PORT = 5432
@@ -19,6 +20,10 @@ DB_PARAMS = {
     "user": USER,
     "password": PASSWORD,
 }
+SQLALCHEMY_CONNECTION_STRING = (
+    f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
+)
+
 
 # Create list of stocks
 tickers = []
@@ -66,6 +71,7 @@ def transform_stock_data(connection, ticker):
 
 
 connection, cursor = connect_postgresql_local_server()
+engine = create_engine(SQLALCHEMY_CONNECTION_STRING)
 
 stock_data_directory = Path("data")
 for ticker in tickers:
