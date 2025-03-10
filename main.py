@@ -53,8 +53,8 @@ def add_data(cursor, engine, ticker: str, stock_history: pd.DataFrame):
     cursor = execute_query(cursor, table_query)
     data = cursor.fetchone()
     if data is None:
-        #TODO: need to append table, since empty table exists.
-        #TODO: need to align schema in pandas to schema in SQL
+        # TODO: need to append table, since empty table exists.
+        # TODO: need to align schema in pandas to schema in SQL
         stock_history.to_sql(
             ticker, con=engine, if_exists="replace", index=True, index_label="Date"
         )
