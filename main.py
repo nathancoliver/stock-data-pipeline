@@ -43,7 +43,7 @@ config_directory = Path("config")
 stocks_file_path = Path(config_directory, "stocks.txt")
 with open(stocks_file_path, "r", encoding="utf-8") as file:
     for ticker in file:
-        tickers.append(ticker.rstrip("\n"))
+        tickers.append(ticker.rstrip("\n").lower())
 
 
 def connect_postgresql_local_server():
@@ -71,7 +71,7 @@ def add_data(cursor, engine, ticker: str, stock_history: pd.DataFrame):
             con=engine,
             if_exists="replace",
             index=True,
-            index_label="Date",
+            index_label="date",
             dtype=STOCK_HISTORY_DTYPES,
         )
     else:
@@ -109,5 +109,7 @@ for ticker in tickers:
     latest_date = get_latest_date(cursor, ticker)
     collect_stock_data = CollectDailyData(ticker, latest_date=latest_date)
     stock_history = collect_stock_data.get_ticker_history()
+    stock_history.columns = [column.lower() for column in stock_history.columns]
+    stock_history.index.name = stock_history.index.name.lower()
     add_data(cursor, engine, ticker, stock_history)
 transform_stock_data(cursor, ticker)
