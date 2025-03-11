@@ -69,7 +69,7 @@ def add_data(cursor, engine, ticker: str, stock_history: pd.DataFrame):
         stock_history.to_sql(
             ticker,
             con=engine,
-            if_exists="replace",
+            if_exists="append",
             index=True,
             index_label="date",
             dtype=STOCK_HISTORY_DTYPES,
