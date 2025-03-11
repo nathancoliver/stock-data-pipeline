@@ -85,9 +85,7 @@ class CollectDailyData:
         stock_history: pd.DataFrame,
     ) -> pd.DataFrame:
         """Remove time and timezone from stock_history Date index."""
-        stock_history.index = pd.DatetimeIndex(
-            stock_history.index.tz_localize(None).date
-        )
+        stock_history.index = pd.DatetimeIndex(stock_history.index.strftime("%Y-%m-%d"))
         return stock_history
 
     def get_ticker_history(self):
