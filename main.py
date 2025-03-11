@@ -6,6 +6,7 @@ from pathlib import Path
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
 import psycopg2
 import pandas as pd
+import sqlalchemy
 from sqlalchemy import create_engine
 
 HOST = "localhost"
@@ -24,6 +25,16 @@ DB_PARAMS = {
 SQLALCHEMY_CONNECTION_STRING = (
     f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
 )
+STOCK_HISTORY_DTYPES = {
+    "Date": sqlalchemy.DATE,
+    "Open": sqlalchemy.types.Numeric(10, 2),
+    "High": sqlalchemy.types.Numeric(10, 2),
+    "Low": sqlalchemy.types.Numeric(10, 2),
+    "Close": sqlalchemy.types.Numeric(10, 2),
+    "Volume": sqlalchemy.types.BigInteger,
+}
+
+float_columns = ["Open", "High", "Low", "Close"]
 
 
 # Create list of stocks
@@ -56,7 +67,12 @@ def add_data(cursor, engine, ticker: str, stock_history: pd.DataFrame):
         # TODO: need to append table, since empty table exists.
         # TODO: need to align schema in pandas to schema in SQL
         stock_history.to_sql(
-            ticker, con=engine, if_exists="replace", index=True, index_label="Date"
+            ticker,
+            con=engine,
+            if_exists="replace",
+            index=True,
+            index_label="Date",
+            dtype=STOCK_HISTORY_DTYPES,
         )
     else:
         # TODO: need to edit else statement to insert data when data exists in table
@@ -66,8 +82,8 @@ def add_data(cursor, engine, ticker: str, stock_history: pd.DataFrame):
 
 
 def create_stock_data_table(connection, cursor, ticker: str):
-    """Craete a table for stock if table does not exist."""
-    query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume INT)"
+    """Create a table for stock if table does not exist."""
+    query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume BIGINT)"
     cursor = execute_query(cursor, query)
     connection.commit()
 
