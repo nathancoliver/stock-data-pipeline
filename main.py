@@ -83,7 +83,7 @@ def add_data(cursor, engine, ticker: str, stock_history: pd.DataFrame):
 
 def create_stock_data_table(connection, cursor, ticker: str):
     """Create a table for stock if table does not exist."""
-    query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open DECIMAL,high DECIMAL,low DECIMAL,close DECIMAL,volume BIGINT)"
+    query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
     cursor = execute_query(cursor, query)
     connection.commit()
 
