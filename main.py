@@ -8,6 +8,7 @@ import psycopg2
 import pandas as pd
 import sqlalchemy
 from sqlalchemy import create_engine
+import datetime
 
 HOST = "localhost"
 PORT = 5432
@@ -44,11 +45,15 @@ with open(stocks_file_path, "r", encoding="utf-8") as file:
 
 
 def connect_postgresql_local_server():
+    """Create connection to local postgreSQL server."""
+
     connection = psycopg2.connect(**DB_PARAMS)
     return connection, connection.cursor()
 
 
 def execute_query(cursor, query, values=None):
+    """Execute postgreSQL query."""
+
     if values:
         cursor.execute(query, values)  # Use values to parameterize the query
     else:
@@ -56,6 +61,8 @@ def execute_query(cursor, query, values=None):
     return cursor
 
 
+def add_data(engine, ticker: str, stock_history: pd.DataFrame):
+    """Append stock history data to existing stock history table."""
 
     stock_history.to_sql(
         ticker,
@@ -68,13 +75,16 @@ def execute_query(cursor, query, values=None):
 
 
 def create_stock_data_table(connection, cursor, ticker: str):
-    """Create a table for stock if table does not exist."""
+    """Create a stock history table if table does not exist."""
+
     query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
     cursor = execute_query(cursor, query)
     connection.commit()
 
 
-def get_latest_date(cursor, ticker: str):
+def get_latest_date(cursor, ticker: str) -> datetime.date | None:
+    """Get latest date from stock history. If no stock histroy, return None."""
+
     query = f"SELECT MAX(DATE) FROM {ticker}"
     cursor = execute_query(cursor, query)
     return cursor.fetchone()[0]
@@ -84,18 +94,30 @@ def transform_stock_data(connection, ticker):
     pass
 
 
-connection, cursor = connect_postgresql_local_server()
-engine = create_engine(SQLALCHEMY_CONNECTION_STRING)
+connection, cursor = (
+    connect_postgresql_local_server()
+)  # Get postgreSQL connection and cursor.
+engine = create_engine(SQLALCHEMY_CONNECTION_STRING)  # Get SQLAlchemy engine
 
-stock_data_directory = Path("data")
+# Create or update stock history for each ticker.
 for ticker in tickers:
     create_stock_data_table(
         connection, cursor, ticker
-    )  # Create blank table if table for stock does not exist
-    latest_date = get_latest_date(cursor, ticker)
-    collect_stock_data = CollectDailyData(ticker, latest_date=latest_date)
-    stock_history = collect_stock_data.get_ticker_history()
-    stock_history.columns = [column.lower() for column in stock_history.columns]
-    stock_history.index.name = stock_history.index.name.lower()
-    add_data(cursor, engine, ticker, stock_history)
+    )  # Create blank table if table for stock does not exist.
+    latest_date = get_latest_date(
+        cursor, ticker
+    )  # Get latest date of stock history table
+    collect_stock_data = CollectDailyData(
+        ticker, latest_date=latest_date
+    )  # initialize CollectDailyData class
+    stock_history = (
+        collect_stock_data.get_ticker_history()
+    )  # retrieve stock history pd.DataFrame
+    stock_history.columns = [
+        column.lower() for column in stock_history.columns
+    ]  # Set column names to all lower-case letters
+    stock_history.index.name = (
+        stock_history.index.name.lower()
+    )  # Set date index to lower-case letters
+    add_data(engine, ticker, stock_history)  # Append data to stock history table
 transform_stock_data(cursor, ticker)
