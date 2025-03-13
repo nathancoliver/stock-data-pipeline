@@ -97,7 +97,7 @@ def transform_stock_data(connection, ticker):
 connection, cursor = (
     connect_postgresql_local_server()
 )  # Get postgreSQL connection and cursor.
-engine = create_engine(SQLALCHEMY_CONNECTION_STRING)  # Get SQLAlchemy engine
+engine = create_engine(SQLALCHEMY_CONNECTION_STRING)  # Get SQLAlchemy engine.
 
 # Create or update stock history for each ticker.
 for ticker in tickers:
@@ -106,18 +106,17 @@ for ticker in tickers:
     )  # Create blank table if table for stock does not exist.
     latest_date = get_latest_date(
         cursor, ticker
-    )  # Get latest date of stock history table
+    )  # Get latest date of stock history table.
     collect_stock_data = CollectDailyData(
         ticker, latest_date=latest_date
-    )  # initialize CollectDailyData class
+    )  # initialize CollectDailyData class.
     stock_history = (
         collect_stock_data.get_ticker_history()
-    )  # retrieve stock history pd.DataFrame
+    )  # retrieve stock history pd.DataFrame.
     stock_history.columns = [
         column.lower() for column in stock_history.columns
-    ]  # Set column names to all lower-case letters
+    ]  # Set column names to all lower-case letters.
     stock_history.index.name = (
         stock_history.index.name.lower()
-    )  # Set date index to lower-case letters
-    add_data(engine, ticker, stock_history)  # Append data to stock history table
+    )  # Set date index to lower-case letters.
 transform_stock_data(cursor, ticker)
