@@ -16,6 +16,7 @@ class CollectDailyData:
         latest_date: pd.DatetimeIndex | None = None,
     ):
         self.ticker = ticker
+        self.latest_date = latest_date
         if directory == Path(".") and save_as_feather:
             raise NameError(
                 "Cannot set save_as_feather to True and not specify a directory"
@@ -29,14 +30,15 @@ class CollectDailyData:
             file_name = f"{ticker}.feather"
             self.file_path = Path(self.directory, file_name)
         self.save_as_feather = save_as_feather
+        end_date = datetime.now()
         if latest_date is None:
-            end_date = datetime.now()
+            start_date = end_date - pd.Timedelta(weeks=52 * 50)
+            self.update = False
         else:
-            end_date = latest_date
-        start_date = end_date - pd.Timedelta(weeks=52 * 50)
+            start_date = self.latest_date + pd.Timedelta(days=1)
+            self.update = True
         self.end_date = self.format_date_to_string(end_date)
         self.start_date = self.format_date_to_string(start_date)
-        self.update = True
 
     @staticmethod
     def format_date_to_string(date):
@@ -69,16 +71,11 @@ class CollectDailyData:
     def _update_ticker_history(self):
         """Update the price and volume history to include the latest day(s)."""
 
-        existing_stock_history = pd.read_feather(self.file_path)
-        latest_date = existing_stock_history.index[-1]
-        start_date = self.format_date_to_string(latest_date + pd.Timedelta(days=1))
+        start_date = self.format_date_to_string(self.latest_date + pd.Timedelta(days=1))
         latest_stock_history = self._download_ticker_history(start_date, self.end_date)
         if latest_stock_history is None:
             self.update = False
-        stock_history = pd.concat(
-            [existing_stock_history, latest_stock_history]
-        ).sort_index()
-        return stock_history[~stock_history.index.duplicated(keep="last")]
+        return latest_stock_history
 
     @staticmethod
     def remove_time_zone_and_time_from_date(
@@ -91,7 +88,7 @@ class CollectDailyData:
     def get_ticker_history(self):
         """Update stock data (if file exists), or download full stock data (if file does not exist)."""
 
-        if self.file_path.exists():
+        if self.update:
             stock_history = self.remove_time_zone_and_time_from_date(
                 self._update_ticker_history()
             )
@@ -99,6 +96,7 @@ class CollectDailyData:
             stock_history = self.remove_time_zone_and_time_from_date(
                 self._download_ticker_history(self.start_date, self.end_date)
             )
+
         if stock_history is not None and self.save_as_feather:
             self.save_ticker_history_to_feather(stock_history)
         return stock_history
