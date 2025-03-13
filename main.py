@@ -56,26 +56,15 @@ def execute_query(cursor, query, values=None):
     return cursor
 
 
-def add_data(cursor, engine, ticker: str, stock_history: pd.DataFrame):
-    table_query = f"SELECT * FROM {ticker} LIMIT 1"
-    cursor = execute_query(cursor, table_query)
-    data = cursor.fetchone()
-    if data is None:
-        # TODO: need to append table, since empty table exists.
-        # TODO: need to align schema in pandas to schema in SQL
-        stock_history.to_sql(
-            ticker,
-            con=engine,
-            if_exists="append",
-            index=True,
-            index_label="date",
-            dtype=STOCK_HISTORY_DTYPES,
-        )
-    else:
-        # TODO: need to edit else statement to insert data when data exists in table
-        query = f"""INSERT INTO {ticker} (date, open, high, low, close, volume) 
-            VALUES (%s, %s, %s, %s, %s, %s)"""
-        cursor = execute_query(cursor, query, values=data)
+
+    stock_history.to_sql(
+        ticker,
+        con=engine,
+        if_exists="append",
+        index=True,
+        index_label="date",
+        dtype=STOCK_HISTORY_DTYPES,
+    )
 
 
 def create_stock_data_table(connection, cursor, ticker: str):
