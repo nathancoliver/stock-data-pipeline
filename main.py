@@ -34,9 +34,6 @@ STOCK_HISTORY_DTYPES = {
     "Volume": sqlalchemy.types.BigInteger,
 }
 
-float_columns = ["Open", "High", "Low", "Close"]
-
-
 # Create list of stocks
 tickers = []
 config_directory = Path("config")
