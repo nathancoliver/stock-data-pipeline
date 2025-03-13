@@ -90,6 +90,25 @@ def get_latest_date(cursor, ticker: str) -> datetime.date | None:
     return cursor.fetchone()[0]
 
 
+def check_table_append_compatibility(
+    latest_date_datetime: datetime.date | None, stock_history: pd.DataFrame
+) -> pd.DataFrame:
+    """Filter dataframe to not include dates already in postgreSQL stock history table."""
+
+    if latest_date_datetime is not None:
+        stock_history_latest_date = stock_history.index[
+            -1
+        ]  # Get latest date in pandas stock history table.
+        latest_date_pandas_datetime = pd.to_datetime(
+            latest_date_datetime
+        )  # Convert latest date to pandas datetime.
+        if latest_date_pandas_datetime >= stock_history_latest_date:
+            stock_history = stock_history[
+                stock_history.index > latest_date_pandas_datetime
+            ]  # Filter pandas stock history to not include any dates already in postgreSQL table.
+    return stock_history
+
+
 def transform_stock_data(connection, ticker):
     pass
 
@@ -119,4 +138,7 @@ for ticker in tickers:
     stock_history.index.name = (
         stock_history.index.name.lower()
     )  # Set date index to lower-case letters.
+    stock_history = check_table_append_compatibility(
+        latest_date, stock_history
+    )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
 transform_stock_data(cursor, ticker)
