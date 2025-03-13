@@ -141,4 +141,6 @@ for ticker in tickers:
     stock_history = check_table_append_compatibility(
         latest_date, stock_history
     )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
+    if not stock_history.empty:  # Skip add_data if stock history table is empty.
+        add_data(engine, ticker, stock_history)  # Append data to stock history table.
 transform_stock_data(cursor, ticker)
