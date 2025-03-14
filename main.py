@@ -109,8 +109,30 @@ def check_table_append_compatibility(
     return stock_history
 
 
-def transform_stock_data(connection, ticker):
-    pass
+def transform_stock_data(connection, cursor, tickers):
+    table_name = "_mag_7"
+    first_ticker = tickers[0]
+    filter_date = "2025-01-01"
+    table_name_query = f"CREATE TABLE {table_name} as"
+    select_query = f" SELECT {first_ticker}.date as date"
+    column_query = f", {first_ticker}.close as {first_ticker}_close"
+    from_query = f" FROM {first_ticker}"
+    join_query = ""
+    where_query = f" WHERE {first_ticker}.date >= '{filter_date}' order by {first_ticker}.date ASC"
+    for ticker in tickers[1:]:
+        column_query += f", {ticker}.close as {ticker}_close"
+        join_query += f" JOIN {ticker} ON {first_ticker}.date = {ticker}.date"
+
+    query = (
+        table_name_query
+        + select_query
+        + column_query
+        + from_query
+        + join_query
+        + where_query
+    )
+    cursor = execute_query(cursor, query)
+    connection.commit()
 
 
 connection, cursor = (
@@ -143,4 +165,4 @@ for ticker in tickers:
     )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
     if not stock_history.empty:  # Skip add_data if stock history table is empty.
         add_data(engine, ticker, stock_history)  # Append data to stock history table.
-transform_stock_data(cursor, ticker)
+transform_stock_data(connection, cursor, tickers)
