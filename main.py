@@ -105,19 +105,6 @@ def execute_query(cursor, query, values=None):
     return cursor
 
 
-def add_data(engine, ticker: str, stock_history: pd.DataFrame):
-    """Append stock history data to existing stock history table."""
-
-    stock_history.to_sql(
-        ticker,
-        con=engine,
-        if_exists="append",
-        index=True,
-        index_label="date",
-        dtype=STOCK_HISTORY_DTYPES,
-    )
-
-
 def create_stock_data_table(connection, cursor, ticker: str):
     """Create a stock history table if table does not exist."""
 
@@ -254,5 +241,12 @@ for ticker in tickers:
         latest_date, stock_history
     )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
     if not stock_history.empty:  # Skip add_data if stock history table is empty.
-        add_data(engine, ticker, stock_history)  # Append data to stock history table.
+        stock_history.to_sql(
+            ticker,
+            con=engine,
+            if_exists="append",
+            index=True,
+            index_label="date",
+            dtype=STOCK_HISTORY_DTYPES,
+        )  # Append data to stock history table.
 transform_stock_data(connection, cursor, tickers)
