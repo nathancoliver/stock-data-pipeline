@@ -2,8 +2,13 @@
 Download stock data from Yahoo Finance, transform data in SQL, and load data into AWS.
 """
 
+import os
+import time
+import datetime
 from pathlib import Path
+from typing import List
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
+from shutil import rmtree
 import psycopg2
 import pandas as pd
 import sqlalchemy
@@ -39,14 +44,44 @@ STOCK_HISTORY_DTYPES = {
     "Close": sqlalchemy.types.Numeric(10, 2),
     "Volume": sqlalchemy.types.BigInteger,
 }
+stock_weight_directory = Path("stock_weights")
 
-# Create list of stocks
-tickers = []
-config_directory = Path("config")
-stocks_file_path = Path(config_directory, "stocks.txt")
-with open(stocks_file_path, "r", encoding="utf-8") as file:
-    for ticker in file:
-        tickers.append(ticker.rstrip("\n").lower())
+
+def create_directory(directory_path):
+    if directory_path.exists():
+        rmtree(directory_path)
+    directory_path.mkdir(exist_ok=True)
+
+
+def get_list_of_tickers_from_txt(file_path: Path) -> List[str]:
+    tickers = []
+    with open(file_path, "r", encoding="utf-8") as file:
+        for ticker in file:
+            tickers.append(ticker.rstrip("\n").lower())
+    return tickers
+
+
+def set_download_directory(download_directory: str):
+
+    options = webdriver.ChromeOptions()
+    prefs = {"download.default_directory": download_directory}
+    options.add_experimental_option("prefs", prefs)
+    return options
+
+
+def download_file_from_website(url: str, options, xpath: str, file_path: Path):
+
+    service = Service(executable_path="chromedriver.exe")
+    driver = webdriver.Chrome(service=service, options=options)
+    driver.get(url)
+    wait = WebDriverWait(driver, 10)  # Wait up to 10 seconds.
+    csv_button = wait.until(
+        EC.element_to_be_clickable((By.XPATH, xpath))
+    )  # Wait until button is clickable.
+    ActionChains(driver).move_to_element(csv_button).click().perform()  # Click button.
+    while not file_path.exists():  # Wait until file is downloaded.
+        time.sleep(0.1)
+    driver.quit()  # Quit driver.
 
 
 def connect_postgresql_local_server():
@@ -138,6 +173,24 @@ def transform_stock_data(connection, cursor, tickers):
     )
     cursor = execute_query(cursor, query)
     connection.commit()
+
+
+create_directory(stock_weight_directory)
+config_directory = Path("config")
+sectors_file_name = "spdr_sectors.txt"
+sectors_file_path = Path(config_directory, sectors_file_name)
+sectors = get_list_of_tickers_from_txt(sectors_file_path)  # Get list of sectors
+
+download_directory = f"{os.getcwd()}\\{stock_weight_directory}"
+options = set_download_directory(download_directory)
+
+for sector in sectors:
+    xpath = "//h2[contains(text(), 'Holdings')]/ancestor::div[2]//button[contains(text(), 'CSV File')]"
+    url = f"https://www.sectorspdrs.com/mainfund/{sector}"
+    sector_weights_file_path = Path(
+        stock_weight_directory, f"index-holdings-{sector}.csv"
+    )
+    download_file_from_website(url, options, xpath, sector_weights_file_path)
 
 
 connection, cursor = (
