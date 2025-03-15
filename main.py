@@ -37,12 +37,13 @@ SQLALCHEMY_CONNECTION_STRING = (
     f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
 )
 STOCK_HISTORY_DTYPES = {
-    "Date": sqlalchemy.DATE,
-    "Open": sqlalchemy.types.Numeric(10, 2),
-    "High": sqlalchemy.types.Numeric(10, 2),
-    "Low": sqlalchemy.types.Numeric(10, 2),
-    "Close": sqlalchemy.types.Numeric(10, 2),
-    "Volume": sqlalchemy.types.BigInteger,
+    "date": sqlalchemy.DATE,
+    "open": sqlalchemy.types.Numeric(10, 2),
+    "high": sqlalchemy.types.Numeric(10, 2),
+    "low": sqlalchemy.types.Numeric(10, 2),
+    "close": sqlalchemy.types.Numeric(10, 2),
+    "volume": sqlalchemy.types.BigInteger,
+}
 }
 stock_weight_directory = Path("stock_weights")
 
