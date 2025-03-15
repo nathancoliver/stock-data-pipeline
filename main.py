@@ -44,6 +44,9 @@ STOCK_HISTORY_DTYPES = {
     "close": sqlalchemy.types.Numeric(10, 2),
     "volume": sqlalchemy.types.BigInteger,
 }
+SECTOR_WEIGHTS_DTYPES = {
+    "symbol": sqlalchemy.VARCHAR(6),
+    "index_weight": sqlalchemy.types.Numeric(10, 4),
 }
 stock_weight_directory = Path("stock_weights")
 
@@ -198,6 +201,34 @@ connection, cursor = (
     connect_postgresql_local_server()
 )  # Get postgreSQL connection and cursor.
 engine = create_engine(SQLALCHEMY_CONNECTION_STRING)  # Get SQLAlchemy engine.
+
+tickers: set[str] = set()
+for sector in sectors:
+    sector_weights_file_path = Path(
+        stock_weight_directory, f"index-holdings-{sector}.csv"
+    )
+    df_weights = pd.read_csv(sector_weights_file_path, header=1)[
+        ["Symbol", "Index Weight"]
+    ]
+    df_weights.columns = [
+        column.lower().replace(" ", "_") for column in df_weights.columns
+    ]
+    df_weights["symbol"] = df_weights["symbol"].str.lower()
+    df_weights["index_weight"] = (
+        df_weights["index_weight"].str.rstrip("%").astype(float) / 100
+    )
+    tickers_sector = set(df_weights["symbol"])
+    tickers = tickers | tickers_sector
+    df_weights.index = df_weights["symbol"]
+    df_weights = df_weights.drop(labels="symbol", axis=1)
+    df_weights.to_sql(
+        f"{sector}_weights",
+        con=engine,
+        if_exists="replace",
+        index=True,
+        index_label="symbol",
+        dtype=SECTOR_WEIGHTS_DTYPES,
+    )
 
 # Create or update stock history for each ticker.
 for ticker in tickers:
