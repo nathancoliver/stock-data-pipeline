@@ -57,6 +57,14 @@ def create_directory(directory_path):
     directory_path.mkdir(exist_ok=True)
 
 
+def make_name_sql_compatible(name: str) -> str:
+    return name.replace(".", "_")
+
+
+def make_ticker_yfinance_compatible(name: str) -> str:
+    return name.replace(".", "-")
+
+
 def get_list_of_tickers_from_txt(file_path: Path) -> List[str]:
     tickers = []
     with open(file_path, "r", encoding="utf-8") as file:
@@ -105,10 +113,14 @@ def execute_query(cursor, query, values=None):
     return cursor
 
 
+def create_ticker_table_name(ticker: str) -> str:
+    return f"{ticker}_stock_history"
+
+
 def create_stock_data_table(connection, cursor, ticker: str):
     """Create a stock history table if table does not exist."""
 
-    query = f"CREATE TABLE IF NOT EXISTS {ticker} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
+    query = f"CREATE TABLE IF NOT EXISTS {create_ticker_table_name(make_name_sql_compatible(ticker))} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
     cursor = execute_query(cursor, query)
     connection.commit()
 
@@ -116,7 +128,7 @@ def create_stock_data_table(connection, cursor, ticker: str):
 def get_latest_date(cursor, ticker: str) -> datetime.date | None:
     """Get latest date from stock history. If no stock histroy, return None."""
 
-    query = f"SELECT MAX(DATE) FROM {ticker}"
+    query = f"SELECT MAX(DATE) FROM {create_ticker_table_name(make_name_sql_compatible(ticker))}"
     cursor = execute_query(cursor, query)
     return cursor.fetchone()[0]
 
@@ -151,9 +163,9 @@ def transform_stock_data(connection, cursor, tickers):
     join_query = ""
     where_query = f" WHERE {first_ticker}.date >= '{filter_date}' order by {first_ticker}.date ASC"
     for ticker in tickers[1:]:
-        column_query += f", {ticker}.close as {ticker}_close"
-        join_query += f" JOIN {ticker} ON {first_ticker}.date = {ticker}.date"
-
+        ticker_table_name = create_ticker_table_name(make_name_sql_compatible(ticker))
+        column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
+        join_query += f" JOIN {ticker_table_name} ON {first_ticker}.date = {ticker_table_name}.date"
     query = (
         table_name_query
         + select_query
@@ -209,7 +221,7 @@ for sector in sectors:
     df_weights.index = df_weights["symbol"]
     df_weights = df_weights.drop(labels="symbol", axis=1)
     df_weights.to_sql(
-        f"{sector}_weights",
+        make_name_sql_compatible(f"{sector}_weights"),
         con=engine,
         if_exists="replace",
         index=True,
@@ -226,7 +238,7 @@ for ticker in tickers:
         cursor, ticker
     )  # Get latest date of stock history table.
     collect_stock_data = CollectDailyData(
-        ticker, latest_date=latest_date
+        make_ticker_yfinance_compatible(ticker), latest_date=latest_date
     )  # initialize CollectDailyData class.
     stock_history = (
         collect_stock_data.get_ticker_history()
@@ -244,7 +256,7 @@ for ticker in tickers:
         # Skip add_data if stock history table is empty.
         if not stock_history.empty:
             stock_history.to_sql(
-                ticker,
+                create_ticker_table_name((make_name_sql_compatible(ticker))),
                 con=engine,
                 if_exists="append",
                 index=True,
