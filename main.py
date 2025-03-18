@@ -234,6 +234,7 @@ for sector in sectors:
     )
 
 # Create or append stock history table for each ticker.
+tickers = sorted(tickers)
 for ticker in tickers:
     create_stock_data_table(
         connection, cursor, ticker
