@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import List
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
 from shutil import rmtree
-import psycopg2
-import pandas as pd
+import psycopg2  # type: ignore
+import pandas as pd  # type: ignore
 import sqlalchemy
 from sqlalchemy import create_engine
 from selenium import webdriver
@@ -185,7 +185,9 @@ sectors_file_path = Path(config_directory, sectors_file_name)
 sectors = get_list_of_tickers_from_txt(sectors_file_path)  # Get list of sectors
 
 download_directory = f"{os.getcwd()}\\{stock_weight_directory}"
-options = set_download_directory(download_directory)
+options = set_download_directory(
+    download_directory
+)  # Define directory to download sector weights in Chrome driver
 
 for sector in sectors:
     xpath = "//h2[contains(text(), 'Holdings')]/ancestor::div[2]//button[contains(text(), 'CSV File')]"
@@ -229,7 +231,7 @@ for sector in sectors:
         dtype=SECTOR_WEIGHTS_DTYPES,
     )
 
-# Create or update stock history for each ticker.
+# Create or append stock history table for each ticker.
 for ticker in tickers:
     create_stock_data_table(
         connection, cursor, ticker
