@@ -231,22 +231,24 @@ for ticker in tickers:
     stock_history = (
         collect_stock_data.get_ticker_history()
     )  # retrieve stock history pd.DataFrame.
-    stock_history.columns = [
-        column.lower() for column in stock_history.columns
-    ]  # Set column names to all lower-case letters.
-    stock_history.index.name = (
-        stock_history.index.name.lower()
-    )  # Set date index to lower-case letters.
-    stock_history = check_table_append_compatibility(
-        latest_date, stock_history
-    )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
-    if not stock_history.empty:  # Skip add_data if stock history table is empty.
-        stock_history.to_sql(
-            ticker,
-            con=engine,
-            if_exists="append",
-            index=True,
-            index_label="date",
-            dtype=STOCK_HISTORY_DTYPES,
-        )  # Append data to stock history table.
+    if stock_history is not None:
+        stock_history.columns = [
+            column.lower() for column in stock_history.columns
+        ]  # Set column names to all lower-case letters.
+        stock_history.index.name = (
+            stock_history.index.name.lower()
+        )  # Set date index to lower-case letters.
+        stock_history = check_table_append_compatibility(
+            latest_date, stock_history
+        )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
+        # Skip add_data if stock history table is empty.
+        if not stock_history.empty:
+            stock_history.to_sql(
+                ticker,
+                con=engine,
+                if_exists="append",
+                index=True,
+                index_label="date",
+                dtype=STOCK_HISTORY_DTYPES,
+            )  # Append data to stock history table.
 transform_stock_data(connection, cursor, tickers)

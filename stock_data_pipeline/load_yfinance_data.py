@@ -89,13 +89,15 @@ class CollectDailyData:
         """Update stock data (if file exists), or download full stock data (if file does not exist)."""
 
         if self.update:
-            stock_history = self.remove_time_zone_and_time_from_date(
-                self._update_ticker_history()
-            )
+            stock_history = self._update_ticker_history()
+            if stock_history is not None:
+                stock_history = self.remove_time_zone_and_time_from_date(stock_history)
         else:
-            stock_history = self.remove_time_zone_and_time_from_date(
-                self._download_ticker_history(self.start_date, self.end_date)
+            stock_history = self._download_ticker_history(
+                self.start_date, self.end_date
             )
+            if stock_history is not None:
+                stock_history = self.remove_time_zone_and_time_from_date(stock_history)
 
         if stock_history is not None and self.save_as_feather:
             self.save_ticker_history_to_feather(stock_history)
