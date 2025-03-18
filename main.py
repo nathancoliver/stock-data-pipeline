@@ -6,7 +6,7 @@ import os
 import time
 import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
 from shutil import rmtree
 import psycopg2  # type: ignore
@@ -204,6 +204,7 @@ connection, cursor = (
 engine = create_engine(SQLALCHEMY_CONNECTION_STRING)  # Get SQLAlchemy engine.
 
 tickers: set[str] = set()
+tickers_sectors: Dict[str, set[str] | List[str]] = {}
 for sector in sectors:
     sector_weights_file_path = Path(
         stock_weight_directory, f"index-holdings-{sector}.csv"
@@ -219,6 +220,7 @@ for sector in sectors:
         df_weights["index_weight"].str.rstrip("%").astype(float) / 100
     )
     tickers_sector = set(df_weights["symbol"])
+    tickers_sectors.update({sector: sorted(tickers_sector)})
     tickers = tickers | tickers_sector
     df_weights.index = df_weights["symbol"]
     df_weights = df_weights.drop(labels="symbol", axis=1)
