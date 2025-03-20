@@ -81,19 +81,11 @@ def set_download_directory(download_directory: str):
     return options
 
 
-def download_file_from_website(url: str, options, xpath: str, file_path: Path):
-
-    service = Service(executable_path="chromedriver.exe")
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get(url)
-    wait = WebDriverWait(driver, 10)  # Wait up to 10 seconds.
-    csv_button = wait.until(
+def press_button(wait, driver, xpath):
+    button = wait.until(
         EC.element_to_be_clickable((By.XPATH, xpath))
     )  # Wait until button is clickable.
-    ActionChains(driver).move_to_element(csv_button).click().perform()  # Click button.
-    while not file_path.exists():  # Wait until file is downloaded.
-        time.sleep(0.1)
-    driver.quit()  # Quit driver.
+    ActionChains(driver).move_to_element(button).click().perform()  # Click button.
 
 
 def connect_postgresql_local_server():
@@ -178,6 +170,19 @@ def transform_stock_data(connection, cursor, tickers):
     connection.commit()
 
 
+def convert_shares_outstanding(shares_outstanding: str) -> int:
+    magnitude = shares_outstanding.rstrip(" ")[-1].upper()
+    value = float(shares_outstanding.rstrip(magnitude).strip(" "))
+    if magnitude == "M":
+        return int(value * 10**6)
+    elif magnitude == "B":
+        return int(value * 10**9)
+    else:
+        raise NameError(
+            f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
+        )
+
+
 create_directory(stock_weight_directory)
 config_directory = Path("config")
 sectors_file_name = "spdr_sectors.txt"
@@ -189,14 +194,40 @@ options = set_download_directory(
     download_directory
 )  # Define directory to download sector weights in Chrome driver
 
+sector_shares_outstanding = {}
 for sector in sectors:
-    xpath = "//h2[contains(text(), 'Holdings')]/ancestor::div[2]//button[contains(text(), 'CSV File')]"
+    outstanding_shares_xpath = "//dt[text()='Shares Outstanding']/following-sibling::dd"
+    index_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[1]"
+    tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
+    portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
+
     url = f"https://www.sectorspdrs.com/mainfund/{sector}"
-    sector_weights_file_path = Path(
+    index_holdings_file_path = Path(
         stock_weight_directory, f"index-holdings-{sector}.csv"
     )
-    download_file_from_website(url, options, xpath, sector_weights_file_path)
+    portfolio_holdings_file_path = Path(
+        stock_weight_directory, f"portfolio-holdings-{sector}.csv"
+    )
+    service = Service(executable_path="chromedriver.exe")
+    driver = webdriver.Chrome(service=service, options=options)
+    driver.get(url)
 
+    wait = WebDriverWait(driver, 10)  # Wait up to 10 seconds.
+    shares_outstanding = driver.find_element(By.XPATH, outstanding_shares_xpath).text
+    sector_shares_outstanding.update(
+        {sector: convert_shares_outstanding(shares_outstanding)}
+    )
+    press_button(wait, driver, index_csv_xpath)
+    while not index_holdings_file_path.exists():  # Wait until file is downloaded.
+        time.sleep(0.1)
+
+    press_button(wait, driver, tab_xpath)
+
+    press_button(wait, driver, portfolio_csv_xpath)
+    while not portfolio_holdings_file_path.exists():  # Wait until file is downloaded.
+        time.sleep(0.1)
+
+    driver.quit()  # Quit driver.
 
 connection, cursor = (
     connect_postgresql_local_server()
