@@ -144,20 +144,25 @@ def check_table_append_compatibility(
     return stock_history
 
 
-def transform_stock_data(connection, cursor, tickers):
-    table_name = "_mag_7"
+def create_sector_history_table(connection, cursor, sector, tickers):
+    table_name = f"{sector}_sector_history"
     first_ticker = tickers[0]
+    first_ticker_table_name = create_ticker_table_name(
+        make_name_sql_compatible(first_ticker)
+    )
     filter_date = "2025-01-01"
     table_name_query = f"CREATE TABLE {table_name} as"
-    select_query = f" SELECT {first_ticker}.date as date"
-    column_query = f", {first_ticker}.close as {first_ticker}_close"
-    from_query = f" FROM {first_ticker}"
+    select_query = f" SELECT {first_ticker_table_name}.date as date"
+    column_query = (
+        f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
+    )
+    from_query = f" FROM {first_ticker_table_name}"
     join_query = ""
-    where_query = f" WHERE {first_ticker}.date >= '{filter_date}' order by {first_ticker}.date ASC"
+    where_query = f" WHERE {first_ticker_table_name}.date >= '{filter_date}' ORDER BY {first_ticker_table_name}.date ASC"
     for ticker in tickers[1:]:
         ticker_table_name = create_ticker_table_name(make_name_sql_compatible(ticker))
         column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
-        join_query += f" JOIN {ticker_table_name} ON {first_ticker}.date = {ticker_table_name}.date"
+        join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
     query = (
         table_name_query
         + select_query
@@ -299,4 +304,6 @@ for ticker in tickers:
                 index_label="date",
                 dtype=STOCK_HISTORY_DTYPES,
             )  # Append data to stock history table.
-transform_stock_data(connection, cursor, tickers)
+
+for sector, tickers in tickers_sectors.items():
+    create_sector_history_table(connection, cursor, sector, tickers)
