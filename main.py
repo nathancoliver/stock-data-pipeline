@@ -176,6 +176,16 @@ class Ticker:
         return cursor.fetchone()[0]
 
 
+class Tickers:
+
+    def __init__(self):
+        self.tickers: Dict[str, Ticker] = {}
+
+    def add_ticker(self, ticker_str: str, ticker_object):
+        if ticker_str not in self.tickers:
+            self.tickers.update({ticker_str: ticker_object})
+
+
 class Sector:
 
     download_file_directory_path: Path
@@ -267,6 +277,7 @@ def check_table_append_compatibility(
 chrome_driver = ChromeDriver(stock_weight_directory)
 chrome_driver.create_directory()
 sectors = Sectors(sectors_file_path, chrome_driver=chrome_driver)
+tickers = Tickers()
 
 for sector in sectors.sectors:
 
