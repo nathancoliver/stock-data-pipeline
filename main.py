@@ -5,6 +5,7 @@ Download stock data from Yahoo Finance, transform data in SQL, and load data int
 import os
 import time
 import datetime
+from enum import Enum
 from pathlib import Path
 from typing import List, Dict
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
@@ -26,16 +27,14 @@ DATABASE = "stock_history"
 USER = "postgres"
 PASSWORD = "l"
 
-DB_PARAMS = {
+database_parameters: Dict[str, str] = {
     "host": HOST,
     "port": PORT,
     "dbname": DATABASE,
     "user": USER,
     "password": PASSWORD,
 }
-SQLALCHEMY_CONNECTION_STRING = (
-    f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-)
+engine_parameters = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
 STOCK_HISTORY_DTYPES = {
     "date": sqlalchemy.DATE,
     "open": sqlalchemy.types.Numeric(10, 2),
@@ -46,83 +45,204 @@ STOCK_HISTORY_DTYPES = {
 }
 SECTOR_WEIGHTS_DTYPES = {
     "symbol": sqlalchemy.VARCHAR(6),
-    "index_weight": sqlalchemy.types.Numeric(10, 4),
+    "weight": sqlalchemy.types.Numeric(10, 4),
+    "shares_held": sqlalchemy.types.BigInteger,
 }
 stock_weight_directory = Path("stock_weights")
+config_directory = "config"
+sectors_file_name = "spdr_sectors.txt"
+sectors_file_path = Path(config_directory, sectors_file_name)
 
 
-def create_directory(directory_path):
-    if directory_path.exists():
-        rmtree(directory_path)
-    directory_path.mkdir(exist_ok=True)
-
-
-def make_name_sql_compatible(name: str) -> str:
-    return name.replace(".", "_")
+def make_ticker_sql_compatible(name: str) -> str:
+    return name.replace(".", "_").lower()
 
 
 def make_ticker_yfinance_compatible(name: str) -> str:
     return name.replace(".", "-")
 
 
-def get_list_of_tickers_from_txt(file_path: Path) -> List[str]:
-    tickers = []
-    with open(file_path, "r", encoding="utf-8") as file:
-        for ticker in file:
-            tickers.append(ticker.rstrip("\n").lower())
-    return tickers
-
-
-def set_download_directory(download_directory: str):
-
-    options = webdriver.ChromeOptions()
-    prefs = {"download.default_directory": download_directory}
-    options.add_experimental_option("prefs", prefs)
-    return options
-
-
-def press_button(wait, driver, xpath):
-    button = wait.until(
-        EC.element_to_be_clickable((By.XPATH, xpath))
-    )  # Wait until button is clickable.
-    ActionChains(driver).move_to_element(button).click().perform()  # Click button.
-
-
-def connect_postgresql_local_server():
-    """Create connection to local postgreSQL server."""
-
-    connection = psycopg2.connect(**DB_PARAMS)
-    return connection, connection.cursor()
-
-
-def execute_query(cursor, query, values=None):
-    """Execute postgreSQL query."""
-
-    if values:
-        cursor.execute(query, values)  # Use values to parameterize the query
+def convert_shares_outstanding(shares_outstanding: str) -> int:
+    magnitude = shares_outstanding.rstrip(" ")[-1].upper()
+    value = float(shares_outstanding.rstrip(magnitude).strip(" "))
+    if magnitude == "M":
+        return int(value * 10**6)
+    elif magnitude == "B":
+        return int(value * 10**9)
     else:
-        cursor.execute(query)
-    return cursor
+        raise NameError(
+            f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
+        )
 
 
-def create_ticker_table_name(ticker: str) -> str:
-    return f"{ticker}_stock_history"
+class SQLOperation(Enum):
+    EXECUTE = "execute"
+    COMMIT = "commit"
 
 
-def create_stock_data_table(connection, cursor, ticker: str):
-    """Create a stock history table if table does not exist."""
+class PostgreSQLConnection:
 
-    query = f"CREATE TABLE IF NOT EXISTS {create_ticker_table_name(make_name_sql_compatible(ticker))} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
-    cursor = execute_query(cursor, query)
-    connection.commit()
+    def __init__(self, database_parameters: Dict[str, str], engine_parameters: str):
+        self.connection: psycopg2.extensions.connection = psycopg2.connect(
+            **database_parameters
+        )
+        self.cursor: psycopg2.extensions.cursor = self.connection.cursor()
+        self.engine = create_engine(engine_parameters)
+
+    def execute_query(self, query, operation: SQLOperation, values=None):
+        """Execute postgreSQL query."""
+
+        if values:
+            self.cursor.execute(query, values)  # Use values to parameterize the query
+        else:
+            self.cursor.execute(query)
+
+        if operation == SQLOperation.COMMIT:
+            self.connection.commit()
+        elif operation == SQLOperation.EXECUTE:
+            return self.cursor
+        else:
+            raise NameError(f"operation {SQLOperation} is not a valid input.")
+
+    def set_primary_key(self, table_name: str, column: str) -> None:
+        query = f"ALTER TABLE {table_name} ADD PRIMARY KEY ({column})"
+        self.execute_query(query, SQLOperation.COMMIT)
 
 
-def get_latest_date(cursor, ticker: str) -> datetime.date | None:
-    """Get latest date from stock history. If no stock histroy, return None."""
+class ChromeDriver:
 
-    query = f"SELECT MAX(DATE) FROM {create_ticker_table_name(make_name_sql_compatible(ticker))}"
-    cursor = execute_query(cursor, query)
-    return cursor.fetchone()[0]
+    def __init__(self, download_file_directory: str):
+        self.download_file_directory_str = download_file_directory
+        self.download_file_directory_path = Path(download_file_directory)
+        self.download_file_directory_absolute_path = (
+            f"{os.getcwd()}\\{download_file_directory}"
+        )
+
+        # Update ChromeDriver preferences to download files to self.download_file_directory
+        options = webdriver.ChromeOptions()
+        prefs = {
+            "download.default_directory": self.download_file_directory_absolute_path
+        }
+        options.add_experimental_option("prefs", prefs)
+
+        service = Service(executable_path="chromedriver.exe")
+        self.driver = webdriver.Chrome(service=service, options=options)
+
+        self.wait = WebDriverWait(self.driver, 10)
+
+    def create_directory(self):
+        if self.download_file_directory_path.exists():
+            rmtree(self.download_file_directory_path)
+        self.download_file_directory_path.mkdir(exist_ok=True)
+
+    def load_url(self, url: str):
+        self.driver.get(url)
+        time.sleep(1)
+
+    def press_button(self, xpath):
+        button = self.wait.until(
+            EC.element_to_be_clickable((By.XPATH, xpath))
+        )  # Wait until button is clickable.
+        ActionChains(self.driver).move_to_element(
+            button
+        ).click().perform()  # Click button.
+
+    def quit_driver(self):
+        self.driver.quit()
+
+
+class Ticker:
+
+    def __init__(self, ticker: str, postgresql_connection: PostgreSQLConnection):
+        self.ticker = make_ticker_sql_compatible(ticker)
+        self.yfinance_ticker = make_ticker_yfinance_compatible(ticker)
+        self.table_name = f"{self.ticker}_stock_history"
+        self.postgresql_connection = postgresql_connection
+        self.stock_history = pd.DataFrame()
+
+    def create_stock_data_table(self):
+        """Create a stock history table if table does not exist."""
+
+        query = f"CREATE TABLE IF NOT EXISTS {self.table_name} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
+        self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+
+    def get_latest_date(self) -> datetime.date | None:
+        """Get most recent date from stock history. If no stock history, return None."""
+
+        query = f"SELECT MAX(DATE) FROM {self.table_name}"
+        cursor = self.postgresql_connection.execute_query(
+            query, operation=SQLOperation.EXECUTE
+        )
+        return cursor.fetchone()[0]
+
+
+class Sector:
+
+    download_file_directory_path: Path
+
+    def __init__(
+        self,
+        sector: str,
+        chrome_driver: ChromeDriver,
+    ):
+        self.download_file_directory_path = chrome_driver.download_file_directory_path
+        self.sector = make_ticker_sql_compatible(sector)
+        self.sector_shares_table_name = f"{self.sector}_shares"
+        self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector}"
+        self.index_holdings_file_path: Path = Path(
+            self.download_file_directory_path, f"index-holdings-{self.sector}.csv"
+        )
+        self.portfolio_holdings_file_path: Path = Path(
+            self.download_file_directory_path, f"portfolio-holdings-{self.sector}.csv"
+        )
+        self.tickers: List[str] = []
+        self.shares_outstanding: None | int = None
+        self.shares_outstanding_xpath = (
+            "//dt[text()='Shares Outstanding']/following-sibling::dd"
+        )
+        self.index_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[1]"
+        self.index_csv_xpath = "//h2[contains(text(), 'Holdings')]/following::span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')][1]"
+        self.portfolio_tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
+        self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
+        self.portfolio_csv_xpath = "//h2[contains(text(), 'Holdings')]/following::span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')][2]"
+
+    def create_sector_history_table(self):
+        table_name = f"{sector}_sector_history"
+        first_ticker_table_name = self.tickers[0].table_name
+        filter_date = "2025-01-01"
+        table_name_query = f"CREATE TABLE {table_name} as"
+        select_query = f" SELECT {first_ticker_table_name}.date as date"
+        column_query = (
+            f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
+        )
+        from_query = f" FROM {first_ticker_table_name}"
+        join_query = ""
+        where_query = f" WHERE {first_ticker_table_name}.date >= '{filter_date}' ORDER BY {first_ticker_table_name}.date ASC"
+        for ticker in self.tickers[1:]:
+            ticker_table_name = ticker.table_name
+            column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
+            join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
+        query = (
+            table_name_query
+            + select_query
+            + column_query
+            + from_query
+            + join_query
+            + where_query
+        )
+        self.execute_query(query, operation=SQLOperation.COMMIT)
+
+
+class Sectors(Sector):
+
+    def __init__(self, file_path: Path, chrome_driver: ChromeDriver):
+        self.sectors: List[Sector] = []
+
+        with open(file_path, "r", encoding="utf-8") as file:
+            for sector_ticker in file:
+                self.sectors.append(
+                    Sector(sector_ticker.rstrip("\n"), chrome_driver=chrome_driver)
+                )
 
 
 def check_table_append_compatibility(
@@ -144,161 +264,94 @@ def check_table_append_compatibility(
     return stock_history
 
 
-def create_sector_history_table(connection, cursor, sector, tickers):
-    table_name = f"{sector}_sector_history"
-    first_ticker = tickers[0]
-    first_ticker_table_name = create_ticker_table_name(
-        make_name_sql_compatible(first_ticker)
+chrome_driver = ChromeDriver(stock_weight_directory)
+chrome_driver.create_directory()
+sectors = Sectors(sectors_file_path, chrome_driver=chrome_driver)
+
+for sector in sectors.sectors:
+
+    chrome_driver.load_url(sector.url)
+    sector.shares_outstanding = convert_shares_outstanding(
+        chrome_driver.driver.find_element(
+            By.XPATH, sector.shares_outstanding_xpath
+        ).text
     )
-    filter_date = "2025-01-01"
-    table_name_query = f"CREATE TABLE {table_name} as"
-    select_query = f" SELECT {first_ticker_table_name}.date as date"
-    column_query = (
-        f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
-    )
-    from_query = f" FROM {first_ticker_table_name}"
-    join_query = ""
-    where_query = f" WHERE {first_ticker_table_name}.date >= '{filter_date}' ORDER BY {first_ticker_table_name}.date ASC"
-    for ticker in tickers[1:]:
-        ticker_table_name = create_ticker_table_name(make_name_sql_compatible(ticker))
-        column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
-        join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
-    query = (
-        table_name_query
-        + select_query
-        + column_query
-        + from_query
-        + join_query
-        + where_query
-    )
-    cursor = execute_query(cursor, query)
-    connection.commit()
-
-
-def convert_shares_outstanding(shares_outstanding: str) -> int:
-    magnitude = shares_outstanding.rstrip(" ")[-1].upper()
-    value = float(shares_outstanding.rstrip(magnitude).strip(" "))
-    if magnitude == "M":
-        return int(value * 10**6)
-    elif magnitude == "B":
-        return int(value * 10**9)
-    else:
-        raise NameError(
-            f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
-        )
-
-
-create_directory(stock_weight_directory)
-config_directory = Path("config")
-sectors_file_name = "spdr_sectors.txt"
-sectors_file_path = Path(config_directory, sectors_file_name)
-sectors = get_list_of_tickers_from_txt(sectors_file_path)  # Get list of sectors
-
-download_directory = f"{os.getcwd()}\\{stock_weight_directory}"
-options = set_download_directory(
-    download_directory
-)  # Define directory to download sector weights in Chrome driver
-
-sector_shares_outstanding = {}
-for sector in sectors:
-    outstanding_shares_xpath = "//dt[text()='Shares Outstanding']/following-sibling::dd"
-    index_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[1]"
-    tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
-    portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
-
-    url = f"https://www.sectorspdrs.com/mainfund/{sector}"
-    index_holdings_file_path = Path(
-        stock_weight_directory, f"index-holdings-{sector}.csv"
-    )
-    portfolio_holdings_file_path = Path(
-        stock_weight_directory, f"portfolio-holdings-{sector}.csv"
-    )
-    service = Service(executable_path="chromedriver.exe")
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get(url)
-
-    wait = WebDriverWait(driver, 10)  # Wait up to 10 seconds.
-    shares_outstanding = driver.find_element(By.XPATH, outstanding_shares_xpath).text
-    sector_shares_outstanding.update(
-        {sector: convert_shares_outstanding(shares_outstanding)}
-    )
-    press_button(wait, driver, index_csv_xpath)
-    while not index_holdings_file_path.exists():  # Wait until file is downloaded.
+    chrome_driver.press_button(sector.index_csv_xpath)
+    while (
+        not sector.index_holdings_file_path.exists()
+    ):  # Wait until file is downloaded.
+        time.sleep(0.1)
+    chrome_driver.press_button(sector.portfolio_tab_xpath)
+    chrome_driver.press_button(sector.portfolio_csv_xpath)
+    while (
+        not sector.portfolio_holdings_file_path.exists()
+    ):  # Wait until file is downloaded.
         time.sleep(0.1)
 
-    press_button(wait, driver, tab_xpath)
+chrome_driver.quit_driver()  # Quit driver.
 
-    press_button(wait, driver, portfolio_csv_xpath)
-    while not portfolio_holdings_file_path.exists():  # Wait until file is downloaded.
-        time.sleep(0.1)
+postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
+tickers: set[Ticker] = set()
+for sector in sectors.sectors:
 
-    driver.quit()  # Quit driver.
-
-connection, cursor = (
-    connect_postgresql_local_server()
-)  # Get postgreSQL connection and cursor.
-engine = create_engine(SQLALCHEMY_CONNECTION_STRING)  # Get SQLAlchemy engine.
-
-tickers: set[str] = set()
-tickers_sectors: Dict[str, set[str] | List[str]] = {}
-for sector in sectors:
-    sector_weights_file_path = Path(
-        stock_weight_directory, f"index-holdings-{sector}.csv"
-    )
-    df_weights = pd.read_csv(sector_weights_file_path, header=1)[
-        ["Symbol", "Index Weight"]
+    df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
+        ["Symbol", "Weight", "Shares Held"]
     ]
-    df_weights.columns = [
-        column.lower().replace(" ", "_") for column in df_weights.columns
+    df_sector_shares.columns = [
+        column.lower().replace(" ", "_") for column in df_sector_shares.columns
     ]
-    df_weights["symbol"] = df_weights["symbol"].str.lower()
-    df_weights["index_weight"] = (
-        df_weights["index_weight"].str.rstrip("%").astype(float) / 100
+    df_sector_shares = df_sector_shares[df_sector_shares["symbol"].notna()]
+    df_sector_shares = df_sector_shares[~df_sector_shares["symbol"].str.contains("25")]
+    df_sector_shares["symbol"] = df_sector_shares["symbol"].str.lower()
+    df_sector_shares["weight"] = (
+        df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
     )
-    tickers_sector = set(df_weights["symbol"])
-    tickers_sectors.update({sector: sorted(tickers_sector)})
-    tickers = tickers | tickers_sector
-    df_weights.index = df_weights["symbol"]
-    df_weights = df_weights.drop(labels="symbol", axis=1)
-    df_weights.to_sql(
-        make_name_sql_compatible(f"{sector}_weights"),
-        con=engine,
+    df_sector_shares["shares_held"] = (
+        df_sector_shares["shares_held"].str.replace(",", "").astype(int)
+    )
+    tickers_in_sector = set(df_sector_shares["symbol"])
+    tickers = tickers | tickers_in_sector
+    df_sector_shares.index = df_sector_shares["symbol"]
+    df_sector_shares = df_sector_shares.drop(labels="symbol", axis=1)
+    df_sector_shares.to_sql(
+        make_ticker_sql_compatible(sector.sector_shares_table_name),
+        con=postgresql_connection.engine,
         if_exists="replace",
         index=True,
         index_label="symbol",
         dtype=SECTOR_WEIGHTS_DTYPES,
     )
+    postgresql_connection.set_primary_key(
+        sector.sector_shares_table_name, column="symbol"
+    )
 
 # Create or append stock history table for each ticker.
 tickers = sorted(tickers)
-for ticker in tickers:
-    create_stock_data_table(
-        connection, cursor, ticker
-    )  # Create blank table if table for stock does not exist.
-    latest_date = get_latest_date(
-        cursor, ticker
-    )  # Get latest date of stock history table.
+for ticker_str in tickers:
+    ticker = Ticker(ticker_str, postgresql_connection)
+    ticker.create_stock_data_table()  # Create blank table if table for stock does not exist.
+    latest_date = ticker.get_latest_date()  # Get latest date of stock history table.
     collect_stock_data = CollectDailyData(
-        make_ticker_yfinance_compatible(ticker), latest_date=latest_date
+        ticker.yfinance_ticker, latest_date=latest_date
     )  # initialize CollectDailyData class.
-    stock_history = (
+    ticker.stock_history = (
         collect_stock_data.get_ticker_history()
     )  # retrieve stock history pd.DataFrame.
-    if stock_history is not None:
-        stock_history.columns = [
-            column.lower() for column in stock_history.columns
+    if ticker.stock_history is not None:
+        ticker.stock_history.columns = [
+            column.lower() for column in ticker.stock_history.columns
         ]  # Set column names to all lower-case letters.
-        stock_history.index.name = (
-            stock_history.index.name.lower()
+        ticker.stock_history.index.name = (
+            ticker.stock_history.index.name.lower()
         )  # Set date index to lower-case letters.
         stock_history = check_table_append_compatibility(
-            latest_date, stock_history
+            latest_date, ticker.stock_history
         )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
         # Skip add_data if stock history table is empty.
         if not stock_history.empty:
             stock_history.to_sql(
-                create_ticker_table_name((make_name_sql_compatible(ticker))),
-                con=engine,
+                ticker.table_name,
+                con=ticker.postgresql_connection.engine,
                 if_exists="append",
                 index=True,
                 index_label="date",
