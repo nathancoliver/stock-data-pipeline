@@ -196,6 +196,7 @@ class Sector:
         self.download_file_directory_path = chrome_driver.download_file_directory_path
         self.sector = make_ticker_sql_compatible(sector)
         self.postgresql_connection = postgresql_connection
+        self.sector_sector_history_table_name = f"{self.sector}_sector_history"
         self.sector_shares_table_name = f"{self.sector}_shares"
         self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector}"
         self.index_holdings_file_path: Path = Path(
@@ -217,18 +218,20 @@ class Sector:
         if ticker_str not in self.tickers:
             self.tickers.append(ticker_object)
 
-    def create_sector_history_table(self):
-        table_name = f"{sector}_sector_history"
+    def create_sector_history_table(self, number_of_days):
+
         first_ticker_table_name = self.tickers[0].table_name
-        filter_date = "2025-01-01"
-        table_name_query = f"CREATE TABLE {table_name} as"
+        table_name_query = (
+            f"CREATE TABLE IF NOT EXISTS {self.sector_sector_history_table_name} as"
+        )
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
             f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
         )
         from_query = f" FROM {first_ticker_table_name}"
         join_query = ""
-        where_query = f" WHERE {first_ticker_table_name}.date >= '{filter_date}' ORDER BY {first_ticker_table_name}.date ASC"
+        where_query = f" ORDER BY {first_ticker_table_name}.date ASC"
+        limit_query = f" LIMIT {number_of_days}"
         for ticker in self.tickers[1:]:
             ticker_table_name = ticker.table_name
             column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
@@ -240,8 +243,9 @@ class Sector:
             + from_query
             + join_query
             + where_query
+            + limit_query
         )
-        self.execute_query(query, operation=SQLOperation.COMMIT)
+        self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
 
 class Sectors(Sector):
@@ -385,5 +389,5 @@ for ticker in tickers.tickers.values():
                 dtype=STOCK_HISTORY_DTYPES,
             )  # Append data to stock history table.
 
-for sector, tickers in tickers_sectors.items():
-    create_sector_history_table(connection, cursor, sector, tickers)
+for sector in sectors.sectors:
+    sector.create_sector_history_table(30)
