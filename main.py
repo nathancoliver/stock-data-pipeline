@@ -275,7 +275,8 @@ def check_table_append_compatibility(
 
 chrome_driver = ChromeDriver(stock_weight_directory)
 chrome_driver.create_directory()
-sectors = Sectors(sectors_file_path, chrome_driver=chrome_driver)
+
+postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
 tickers = Tickers()
 
 for sector in sectors.sectors:
@@ -300,7 +301,6 @@ for sector in sectors.sectors:
 
 chrome_driver.quit_driver()  # Quit driver.
 
-postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
 for sector in sectors.sectors:
 
     df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
