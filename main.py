@@ -202,7 +202,7 @@ class Sector:
         self.portfolio_holdings_file_path: Path = Path(
             self.download_file_directory_path, f"portfolio-holdings-{self.sector}.csv"
         )
-        self.tickers: List[str] = []
+        self.tickers: List[Ticker] = []
         self.shares_outstanding: None | int = None
         self.shares_outstanding_xpath = (
             "//dt[text()='Shares Outstanding']/following-sibling::dd"
@@ -211,7 +211,9 @@ class Sector:
         self.index_csv_xpath = "//h2[contains(text(), 'Holdings')]/following::span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')][1]"
         self.portfolio_tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
         self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
-        self.portfolio_csv_xpath = "//h2[contains(text(), 'Holdings')]/following::span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')][2]"
+    def add_ticker(self, ticker_object: Ticker):
+        if ticker_str not in self.tickers:
+            self.tickers.append(ticker_object)
 
     def create_sector_history_table(self):
         table_name = f"{sector}_sector_history"
@@ -299,7 +301,6 @@ for sector in sectors.sectors:
 chrome_driver.quit_driver()  # Quit driver.
 
 postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
-tickers: set[Ticker] = set()
 for sector in sectors.sectors:
 
     df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
@@ -318,7 +319,10 @@ for sector in sectors.sectors:
         df_sector_shares["shares_held"].str.replace(",", "").astype(int)
     )
     tickers_in_sector = set(df_sector_shares["symbol"])
-    tickers = tickers | tickers_in_sector
+    for ticker_str in tickers_in_sector:
+        ticker_object = Ticker(ticker_str, postgresql_connection)
+        sector.add_ticker(ticker_object)
+        tickers.add_ticker(ticker_str, ticker_object)
     df_sector_shares.index = df_sector_shares["symbol"]
     df_sector_shares = df_sector_shares.drop(labels="symbol", axis=1)
     df_sector_shares.to_sql(
