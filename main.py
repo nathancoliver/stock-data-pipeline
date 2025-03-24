@@ -191,9 +191,11 @@ class Sector:
         self,
         sector: str,
         chrome_driver: ChromeDriver,
+        postgresql_connection: PostgreSQLConnection,
     ):
         self.download_file_directory_path = chrome_driver.download_file_directory_path
         self.sector = make_ticker_sql_compatible(sector)
+        self.postgresql_connection = postgresql_connection
         self.sector_shares_table_name = f"{self.sector}_shares"
         self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector}"
         self.index_holdings_file_path: Path = Path(
@@ -244,13 +246,22 @@ class Sector:
 
 class Sectors(Sector):
 
-    def __init__(self, file_path: Path, chrome_driver: ChromeDriver):
+    def __init__(
+        self,
+        file_path: Path,
+        chrome_driver: ChromeDriver,
+        postgresql_connection: PostgreSQLConnection,
+    ):
         self.sectors: List[Sector] = []
 
         with open(file_path, "r", encoding="utf-8") as file:
             for sector_ticker in file:
                 self.sectors.append(
-                    Sector(sector_ticker.rstrip("\n"), chrome_driver=chrome_driver)
+                    Sector(
+                        sector_ticker.rstrip("\n"),
+                        chrome_driver=chrome_driver,
+                        postgresql_connection=postgresql_connection,
+                    )
                 )
 
 
@@ -277,6 +288,12 @@ chrome_driver = ChromeDriver(stock_weight_directory)
 chrome_driver.create_directory()
 
 postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
+
+sectors = Sectors(
+    sectors_file_path,
+    chrome_driver=chrome_driver,
+    postgresql_connection=postgresql_connection,
+)
 tickers = Tickers()
 
 for sector in sectors.sectors:
