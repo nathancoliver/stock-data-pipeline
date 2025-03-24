@@ -338,10 +338,8 @@ for sector in sectors.sectors:
     )
 
 # Create or append stock history table for each ticker.
-tickers = sorted(tickers)
-for ticker_str in tickers:
-    ticker = Ticker(ticker_str, postgresql_connection)
-    ticker.create_stock_data_table()  # Create blank table if table for stock does not exist.
+for ticker in tickers.tickers.values():
+
     latest_date = ticker.get_latest_date()  # Get latest date of stock history table.
     collect_stock_data = CollectDailyData(
         ticker.yfinance_ticker, latest_date=latest_date
