@@ -137,7 +137,7 @@ class ChromeDriver:
 
     def load_url(self, url: str):
         self.driver.get(url)
-        time.sleep(1)
+        time.sleep(2)
 
     def press_button(self, xpath):
         button = self.wait.until(
