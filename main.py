@@ -160,9 +160,6 @@ class Ticker:
         self.postgresql_connection = postgresql_connection
         self.stock_history = pd.DataFrame()
 
-    def create_stock_data_table(self):
-        """Create a stock history table if table does not exist."""
-
         query = f"CREATE TABLE IF NOT EXISTS {self.table_name} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
