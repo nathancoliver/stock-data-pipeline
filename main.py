@@ -208,9 +208,9 @@ class Sector:
             "//dt[text()='Shares Outstanding']/following-sibling::dd"
         )
         self.index_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[1]"
-        self.index_csv_xpath = "//h2[contains(text(), 'Holdings')]/following::span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')][1]"
         self.portfolio_tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
         self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
+
     def add_ticker(self, ticker_object: Ticker):
         if ticker_str not in self.tickers:
             self.tickers.append(ticker_object)
