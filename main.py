@@ -111,7 +111,7 @@ class PostgreSQLConnection:
 
 class ChromeDriver:
 
-    def __init__(self, download_file_directory: str):
+    def __init__(self, download_file_directory: str | Path):
         self.download_file_directory_str = download_file_directory
         self.download_file_directory_path = Path(download_file_directory)
         self.download_file_directory_absolute_path = (
