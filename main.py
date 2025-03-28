@@ -359,7 +359,7 @@ for sector in sectors.sectors:
     ):  # Wait until file is downloaded.
         time.sleep(0.1)
 
-chrome_driver.quit_driver()  # Quit driver.
+chrome_driver.quit_driver()
 
 for sector in sectors.sectors:
     todays_date = get_todays_date()
