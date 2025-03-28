@@ -35,7 +35,7 @@ database_parameters: Dict[str, str] = {
     "password": PASSWORD,
 }
 engine_parameters = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-STOCK_HISTORY_DTYPES = {
+stock_history_dtypes = {
     "date": sqlalchemy.DATE,
     "open": sqlalchemy.types.Numeric(10, 2),
     "high": sqlalchemy.types.Numeric(10, 2),
@@ -433,7 +433,7 @@ for ticker in tickers.tickers.values():
                 if_exists="append",
                 index=True,
                 index_label="date",
-                dtype=STOCK_HISTORY_DTYPES,
+                dtype=stock_history_dtypes,
             )  # Append data to stock history table.
 
 for sector in sectors.sectors:
