@@ -217,10 +217,9 @@ class Sector:
 
     def create_sector_history_table(self, number_of_days):
 
+        # TODO: create multiple private functions to make code more readable
         first_ticker_table_name = self.tickers[0].table_name
-        table_name_query = (
-            f"CREATE TABLE IF NOT EXISTS {self.sector_sector_history_table_name} as"
-        )
+        table_name_query = f"CREATE TABLE {self.sector_sector_history_table_name} as" # TODO: revert operation to 'IF NOT EXISTS'
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
             f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
@@ -228,7 +227,6 @@ class Sector:
         from_query = f" FROM {first_ticker_table_name}"
         join_query = ""
         where_query = f" ORDER BY {first_ticker_table_name}.date ASC"
-        limit_query = f" LIMIT {number_of_days}"
         for ticker in self.tickers[1:]:
             ticker_table_name = ticker.table_name
             column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
@@ -240,8 +238,11 @@ class Sector:
             + from_query
             + join_query
             + where_query
-            + limit_query
         )
+        self.postgresql_connection.execute_query(
+            f"DROP TABLE IF EXISTS {self.sector_sector_history_table_name}",
+            operation=SQLOperation.COMMIT,
+        ) # TODO: remove this operation to append data to existing table
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
 
