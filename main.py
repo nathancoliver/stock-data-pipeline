@@ -224,7 +224,7 @@ class Sector:
 
         # TODO: create multiple private functions to make code more readable
         first_ticker_table_name = self.tickers[0].table_name
-        table_name_query = f"CREATE TABLE {self.sector_sector_history_table_name} as" # TODO: revert operation to 'IF NOT EXISTS'
+        table_name_query = f"CREATE TABLE {self.sector_sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
             f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
@@ -247,7 +247,7 @@ class Sector:
         self.postgresql_connection.execute_query(
             f"DROP TABLE IF EXISTS {self.sector_sector_history_table_name}",
             operation=SQLOperation.COMMIT,
-        ) # TODO: remove this operation to append data to existing table
+        )  # TODO: remove this operation to append data to existing table
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
 
