@@ -43,11 +43,6 @@ STOCK_HISTORY_DTYPES = {
     "close": sqlalchemy.types.Numeric(10, 2),
     "volume": sqlalchemy.types.BigInteger,
 }
-SECTOR_WEIGHTS_DTYPES = {
-    "symbol": sqlalchemy.VARCHAR(6),
-    "weight": sqlalchemy.types.Numeric(10, 4),
-    "shares_held": sqlalchemy.types.BigInteger,
-}
 stock_weight_directory = Path("stock_weights")
 config_directory = "config"
 sectors_file_name = "spdr_sectors.txt"
@@ -73,6 +68,10 @@ def convert_shares_outstanding(shares_outstanding: str) -> int:
         raise NameError(
             f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
         )
+
+
+def get_todays_date():
+    return datetime.datetime.now() - datetime.timedelta(days=1)
 
 
 class SQLOperation(Enum):
@@ -362,7 +361,7 @@ for sector in sectors.sectors:
 chrome_driver.quit_driver()  # Quit driver.
 
 for sector in sectors.sectors:
-
+    todays_date = get_todays_date()
     df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
         ["Symbol", "Weight", "Shares Held"]
     ]
@@ -378,22 +377,29 @@ for sector in sectors.sectors:
     df_sector_shares["shares_held"] = (
         df_sector_shares["shares_held"].str.replace(",", "").astype(int)
     )
+    df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
+    df_sector_shares = pd.pivot(
+        df_sector_shares, index="date", columns="symbol", values="shares_held"
+    )
+
+    tickers_in_sector = set(df_sector_shares.columns)
+    sector_weights_dtypes = {"date": sqlalchemy.Date}
     for ticker_symbol in tickers_in_sector:
         ticker_object = Ticker(ticker_symbol, postgresql_connection)
         sector.add_ticker(ticker_object)
         tickers.add_ticker(ticker_symbol, ticker_object)
-    df_sector_shares.index = df_sector_shares["symbol"]
-    df_sector_shares = df_sector_shares.drop(labels="symbol", axis=1)
+        sector_weights_dtypes.update({ticker_symbol: sqlalchemy.types.BigInteger})
+
     df_sector_shares.to_sql(
         make_ticker_sql_compatible(sector.sector_shares_table_name),
         con=postgresql_connection.engine,
         if_exists="replace",
         index=True,
-        index_label="symbol",
-        dtype=SECTOR_WEIGHTS_DTYPES,
+        index_label="date",
+        dtype=sector_weights_dtypes,  # TODO: update dtypes
     )
     postgresql_connection.set_primary_key(
-        sector.sector_shares_table_name, column="symbol"
+        sector.sector_shares_table_name, column="date"
     )
 
 sectors.create_shares_outstanding_table()
