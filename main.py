@@ -193,14 +193,19 @@ class Sector:
         postgresql_connection: PostgreSQLConnection,
     ):
         self.download_file_directory_path = chrome_driver.download_file_directory_path
-        self.sector = make_ticker_sql_compatible(sector)
+        self.sector_symbol = make_ticker_sql_compatible(sector)
         self.postgresql_connection = postgresql_connection
+        self.sector_sector_history_table_name = f"{self.sector_symbol}_sector_history"
+        self.sector_shares_table_name = f"{self.sector_symbol}_shares"
         self.shares_outstanding: None | int = None
+        self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector_symbol}"
         self.index_holdings_file_path: Path = Path(
-            self.download_file_directory_path, f"index-holdings-{self.sector}.csv"
+            self.download_file_directory_path,
+            f"index-holdings-{self.sector_symbol}.csv",
         )
         self.portfolio_holdings_file_path: Path = Path(
-            self.download_file_directory_path, f"portfolio-holdings-{self.sector}.csv"
+            self.download_file_directory_path,
+            f"portfolio-holdings-{self.sector_symbol}.csv",
         )
         self.tickers: List[Ticker] = []
         self.shares_outstanding: None | int = None
