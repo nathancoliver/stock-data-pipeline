@@ -245,7 +245,7 @@ class Sector:
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
 
-class Sectors(Sector):
+class Sectors:
 
     def __init__(
         self,
