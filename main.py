@@ -35,18 +35,13 @@ database_parameters: Dict[str, str] = {
     "password": PASSWORD,
 }
 engine_parameters = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-STOCK_HISTORY_DTYPES = {
+stock_history_dtypes = {
     "date": sqlalchemy.DATE,
     "open": sqlalchemy.types.Numeric(10, 2),
     "high": sqlalchemy.types.Numeric(10, 2),
     "low": sqlalchemy.types.Numeric(10, 2),
     "close": sqlalchemy.types.Numeric(10, 2),
     "volume": sqlalchemy.types.BigInteger,
-}
-SECTOR_WEIGHTS_DTYPES = {
-    "symbol": sqlalchemy.VARCHAR(6),
-    "weight": sqlalchemy.types.Numeric(10, 4),
-    "shares_held": sqlalchemy.types.BigInteger,
 }
 stock_weight_directory = Path("stock_weights")
 config_directory = "config"
@@ -73,6 +68,10 @@ def convert_shares_outstanding(shares_outstanding: str) -> int:
         raise NameError(
             f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
         )
+
+
+def get_todays_date():
+    return datetime.datetime.now() - datetime.timedelta(days=1)
 
 
 class SQLOperation(Enum):
@@ -111,7 +110,7 @@ class PostgreSQLConnection:
 
 class ChromeDriver:
 
-    def __init__(self, download_file_directory: str):
+    def __init__(self, download_file_directory: str | Path):
         self.download_file_directory_str = download_file_directory
         self.download_file_directory_path = Path(download_file_directory)
         self.download_file_directory_absolute_path = (
@@ -137,7 +136,7 @@ class ChromeDriver:
 
     def load_url(self, url: str):
         self.driver.get(url)
-        time.sleep(1)
+        time.sleep(2)
 
     def press_button(self, xpath):
         button = self.wait.until(
@@ -154,14 +153,11 @@ class ChromeDriver:
 class Ticker:
 
     def __init__(self, ticker: str, postgresql_connection: PostgreSQLConnection):
-        self.ticker = make_ticker_sql_compatible(ticker)
+        self.ticker_symbol = make_ticker_sql_compatible(ticker)
         self.yfinance_ticker = make_ticker_yfinance_compatible(ticker)
-        self.table_name = f"{self.ticker}_stock_history"
+        self.table_name = f"{self.ticker_symbol}_stock_history"
         self.postgresql_connection = postgresql_connection
         self.stock_history = pd.DataFrame()
-
-    def create_stock_data_table(self):
-        """Create a stock history table if table does not exist."""
 
         query = f"CREATE TABLE IF NOT EXISTS {self.table_name} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
@@ -176,6 +172,16 @@ class Ticker:
         return cursor.fetchone()[0]
 
 
+class Tickers:
+
+    def __init__(self):
+        self.tickers: Dict[str, Ticker] = {}
+
+    def add_ticker(self, ticker_symbol: str, ticker_object):
+        if ticker_symbol not in self.tickers:
+            self.tickers.update({ticker_symbol: ticker_object})
+
+
 class Sector:
 
     download_file_directory_path: Path
@@ -184,40 +190,48 @@ class Sector:
         self,
         sector: str,
         chrome_driver: ChromeDriver,
+        postgresql_connection: PostgreSQLConnection,
     ):
         self.download_file_directory_path = chrome_driver.download_file_directory_path
-        self.sector = make_ticker_sql_compatible(sector)
-        self.sector_shares_table_name = f"{self.sector}_shares"
-        self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector}"
+        self.sector_symbol = make_ticker_sql_compatible(sector)
+        self.postgresql_connection = postgresql_connection
+        self.sector_sector_history_table_name = f"{self.sector_symbol}_sector_history"
+        self.sector_shares_table_name = f"{self.sector_symbol}_shares"
+        self.shares_outstanding: None | int = None
+        self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector_symbol}"
         self.index_holdings_file_path: Path = Path(
-            self.download_file_directory_path, f"index-holdings-{self.sector}.csv"
+            self.download_file_directory_path,
+            f"index-holdings-{self.sector_symbol}.csv",
         )
         self.portfolio_holdings_file_path: Path = Path(
-            self.download_file_directory_path, f"portfolio-holdings-{self.sector}.csv"
+            self.download_file_directory_path,
+            f"portfolio-holdings-{self.sector_symbol}.csv",
         )
-        self.tickers: List[str] = []
+        self.tickers: List[Ticker] = []
         self.shares_outstanding: None | int = None
         self.shares_outstanding_xpath = (
             "//dt[text()='Shares Outstanding']/following-sibling::dd"
         )
         self.index_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[1]"
-        self.index_csv_xpath = "//h2[contains(text(), 'Holdings')]/following::span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')][1]"
         self.portfolio_tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
         self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
-        self.portfolio_csv_xpath = "//h2[contains(text(), 'Holdings')]/following::span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')][2]"
 
-    def create_sector_history_table(self):
-        table_name = f"{sector}_sector_history"
+    def add_ticker(self, ticker_object: Ticker):
+        if ticker_object.ticker_symbol not in self.tickers:
+            self.tickers.append(ticker_object)
+
+    def create_sector_history_table(self, number_of_days):
+
+        # TODO: create multiple private functions to make code more readable
         first_ticker_table_name = self.tickers[0].table_name
-        filter_date = "2025-01-01"
-        table_name_query = f"CREATE TABLE {table_name} as"
+        table_name_query = f"CREATE TABLE {self.sector_sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
             f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
         )
         from_query = f" FROM {first_ticker_table_name}"
         join_query = ""
-        where_query = f" WHERE {first_ticker_table_name}.date >= '{filter_date}' ORDER BY {first_ticker_table_name}.date ASC"
+        where_query = f" ORDER BY {first_ticker_table_name}.date ASC"
         for ticker in self.tickers[1:]:
             ticker_table_name = ticker.table_name
             column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
@@ -230,19 +244,71 @@ class Sector:
             + join_query
             + where_query
         )
-        self.execute_query(query, operation=SQLOperation.COMMIT)
+        self.postgresql_connection.execute_query(
+            f"DROP TABLE IF EXISTS {self.sector_sector_history_table_name}",
+            operation=SQLOperation.COMMIT,
+        )  # TODO: remove this operation to append data to existing table
+        self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
 
-class Sectors(Sector):
+class Sectors:
 
-    def __init__(self, file_path: Path, chrome_driver: ChromeDriver):
+    def __init__(
+        self,
+        file_path: Path,
+        chrome_driver: ChromeDriver,
+        postgresql_connection: PostgreSQLConnection,
+    ):
         self.sectors: List[Sector] = []
+        self.shares_outstanding: Dict[str, List[str | int]] = {
+            "sector": [],
+            "shares_outstanding": [],
+        }
 
         with open(file_path, "r", encoding="utf-8") as file:
             for sector_ticker in file:
                 self.sectors.append(
-                    Sector(sector_ticker.rstrip("\n"), chrome_driver=chrome_driver)
+                    Sector(
+                        sector_ticker.rstrip("\n"),
+                        chrome_driver=chrome_driver,
+                        postgresql_connection=postgresql_connection,
+                    )
                 )
+
+    def append_shares_outstanding_dict(self, sector: Sector, shares_outstanding: int):
+        self.shares_outstanding["sector"].append(sector.sector_symbol)
+        self.shares_outstanding["shares_outstanding"].append(shares_outstanding)
+
+    def create_shares_outstanding_table(self):
+        # TODO: initilalize sql table (create table if exists ...)
+        # TODO: create a row of shares outstanding and add row to existing sql tables
+        end_date = datetime.datetime.now()
+        date_range = [
+            (end_date - datetime.timedelta(days=day)).strftime("%Y-%m-%d")
+            for day in range(365)
+        ]
+        temporary_dict = {"date": date_range}
+        number_of_dates = len(date_range)
+        shares_outstanding_dtypes = {
+            "date": sqlalchemy.DATE,
+        }
+        for sector in self.sectors:
+            temporary_dict.update(
+                {sector.sector_symbol: [sector.shares_outstanding] * number_of_dates}
+            )
+            shares_outstanding_dtypes.update(
+                {
+                    sector.sector_symbol: sqlalchemy.types.BigInteger,
+                }
+            )
+        pd.DataFrame(temporary_dict).set_index("date").to_sql(
+            "sector_shares_outstanding",
+            con=postgresql_connection.engine,
+            if_exists="replace",  # TODO: eventually this will need to be replaced with
+            index=True,
+            index_label="date",
+            dtype=shares_outstanding_dtypes,
+        )
 
 
 def check_table_append_compatibility(
@@ -266,16 +332,26 @@ def check_table_append_compatibility(
 
 chrome_driver = ChromeDriver(stock_weight_directory)
 chrome_driver.create_directory()
-sectors = Sectors(sectors_file_path, chrome_driver=chrome_driver)
+
+postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
+
+sectors = Sectors(
+    sectors_file_path,
+    chrome_driver=chrome_driver,
+    postgresql_connection=postgresql_connection,
+)
+tickers = Tickers()
 
 for sector in sectors.sectors:
 
     chrome_driver.load_url(sector.url)
-    sector.shares_outstanding = convert_shares_outstanding(
+    shares_outstanding = convert_shares_outstanding(
         chrome_driver.driver.find_element(
             By.XPATH, sector.shares_outstanding_xpath
         ).text
     )
+    sectors.append_shares_outstanding_dict(sector, shares_outstanding)
+    sector.shares_outstanding = shares_outstanding
     chrome_driver.press_button(sector.index_csv_xpath)
     while (
         not sector.index_holdings_file_path.exists()
@@ -288,12 +364,10 @@ for sector in sectors.sectors:
     ):  # Wait until file is downloaded.
         time.sleep(0.1)
 
-chrome_driver.quit_driver()  # Quit driver.
+chrome_driver.quit_driver()
 
-postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
-tickers: set[Ticker] = set()
 for sector in sectors.sectors:
-
+    todays_date = get_todays_date()
     df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
         ["Symbol", "Weight", "Shares Held"]
     ]
@@ -309,27 +383,36 @@ for sector in sectors.sectors:
     df_sector_shares["shares_held"] = (
         df_sector_shares["shares_held"].str.replace(",", "").astype(int)
     )
-    tickers_in_sector = set(df_sector_shares["symbol"])
-    tickers = tickers | tickers_in_sector
-    df_sector_shares.index = df_sector_shares["symbol"]
-    df_sector_shares = df_sector_shares.drop(labels="symbol", axis=1)
+    df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
+    df_sector_shares = pd.pivot(
+        df_sector_shares, index="date", columns="symbol", values="shares_held"
+    )
+
+    tickers_in_sector = set(df_sector_shares.columns)
+    sector_weights_dtypes = {"date": sqlalchemy.Date}
+    for ticker_symbol in tickers_in_sector:
+        ticker_object = Ticker(ticker_symbol, postgresql_connection)
+        sector.add_ticker(ticker_object)
+        tickers.add_ticker(ticker_symbol, ticker_object)
+        sector_weights_dtypes.update({ticker_symbol: sqlalchemy.types.BigInteger})
+
     df_sector_shares.to_sql(
         make_ticker_sql_compatible(sector.sector_shares_table_name),
         con=postgresql_connection.engine,
         if_exists="replace",
         index=True,
-        index_label="symbol",
-        dtype=SECTOR_WEIGHTS_DTYPES,
+        index_label="date",
+        dtype=sector_weights_dtypes,  # TODO: update dtypes
     )
     postgresql_connection.set_primary_key(
-        sector.sector_shares_table_name, column="symbol"
+        sector.sector_shares_table_name, column="date"
     )
 
+sectors.create_shares_outstanding_table()
+
 # Create or append stock history table for each ticker.
-tickers = sorted(tickers)
-for ticker_str in tickers:
-    ticker = Ticker(ticker_str, postgresql_connection)
-    ticker.create_stock_data_table()  # Create blank table if table for stock does not exist.
+for ticker in tickers.tickers.values():
+
     latest_date = ticker.get_latest_date()  # Get latest date of stock history table.
     collect_stock_data = CollectDailyData(
         ticker.yfinance_ticker, latest_date=latest_date
@@ -355,8 +438,8 @@ for ticker_str in tickers:
                 if_exists="append",
                 index=True,
                 index_label="date",
-                dtype=STOCK_HISTORY_DTYPES,
+                dtype=stock_history_dtypes,
             )  # Append data to stock history table.
 
-for sector, tickers in tickers_sectors.items():
-    create_sector_history_table(connection, cursor, sector, tickers)
+for sector in sectors.sectors:
+    sector.create_sector_history_table(30)
