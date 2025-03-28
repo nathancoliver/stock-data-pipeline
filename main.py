@@ -220,7 +220,7 @@ class Sector:
         if ticker_object.ticker_symbol not in self.tickers:
             self.tickers.append(ticker_object)
 
-    def create_sector_history_table(self, number_of_days):
+    def create_sector_history_table(self):
 
         # TODO: create multiple private functions to make code more readable
         first_ticker_table_name = self.tickers[0].table_name
@@ -442,4 +442,4 @@ for ticker in tickers.tickers.values():
             )  # Append data to stock history table.
 
 for sector in sectors.sectors:
-    sector.create_sector_history_table(30)
+    sector.create_sector_history_table()
