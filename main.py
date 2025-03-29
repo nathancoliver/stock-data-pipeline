@@ -158,6 +158,7 @@ class Ticker:
         self.ticker_symbol = make_ticker_sql_compatible(ticker)
         self.yfinance_ticker = make_ticker_yfinance_compatible(ticker)
         self.table_name = f"{self.ticker_symbol}_stock_history"
+        self.price_column_name = f"{self.ticker_symbol}_price"
         self.postgresql_connection = postgresql_connection
         self.stock_history = pd.DataFrame()
 
@@ -228,17 +229,18 @@ class Sector:
     def create_sector_history_table(self):
 
         # TODO: create multiple private functions to make code more readable
+        first_ticker_price_column = first_ticker.price_column_name
         table_name_query = f"CREATE TABLE {self.sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
-            f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
+            f", {first_ticker_table_name}.close as {first_ticker_price_column}"
         )
         from_query = f" FROM {first_ticker_table_name}"
         join_query = ""
         where_query = f" ORDER BY {first_ticker_table_name}.date ASC"
         for ticker in self.tickers[1:]:
             ticker_table_name = ticker.table_name
-            column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
+            column_query += f", {ticker_table_name}.close as {ticker.price_column_name}"
             join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
         query = (
             table_name_query
