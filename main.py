@@ -197,7 +197,7 @@ class Sector:
         self.download_file_directory_path = chrome_driver.download_file_directory_path
         self.sector_symbol = make_ticker_sql_compatible(sector)
         self.postgresql_connection = postgresql_connection
-        self.sector_sector_history_table_name = f"{self.sector_symbol}_sector_history"
+        self.sector_history_table_name = f"{self.sector_symbol}_sector_history"
         self.sector_shares_table_name = f"{self.sector_symbol}_shares"
         self.shares_outstanding: None | int = None
         self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector_symbol}"
@@ -225,8 +225,7 @@ class Sector:
     def create_sector_history_table(self):
 
         # TODO: create multiple private functions to make code more readable
-        first_ticker_table_name = self.tickers[0].table_name
-        table_name_query = f"CREATE TABLE {self.sector_sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
+        table_name_query = f"CREATE TABLE {self.sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
             f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
@@ -247,7 +246,7 @@ class Sector:
             + where_query
         )
         self.postgresql_connection.execute_query(
-            f"DROP TABLE IF EXISTS {self.sector_sector_history_table_name}",
+            f"DROP TABLE IF EXISTS {self.sector_history_table_name}",
             operation=SQLOperation.COMMIT,
         )  # TODO: remove this operation to append data to existing table
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
