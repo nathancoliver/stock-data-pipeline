@@ -27,6 +27,8 @@ DATABASE = "stock_history"
 USER = "postgres"
 PASSWORD = "l"
 
+SECTOR_SHARES_OUTSTANDING = "sector_shares_outstanding"
+
 database_parameters: Dict[str, str] = {
     "host": HOST,
     "port": PORT,
@@ -302,7 +304,7 @@ class Sectors:
                 }
             )
         pd.DataFrame(temporary_dict).set_index("date").to_sql(
-            "sector_shares_outstanding",
+            SECTOR_SHARES_OUTSTANDING,
             con=postgresql_connection.engine,
             if_exists="replace",  # TODO: eventually this will need to be replaced with
             index=True,
