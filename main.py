@@ -229,6 +229,8 @@ class Sector:
     def create_sector_history_table(self):
 
         # TODO: create multiple private functions to make code more readable
+        first_ticker = self.tickers[0]
+        first_ticker_table_name = first_ticker.table_name
         first_ticker_price_column = first_ticker.price_column_name
         table_name_query = f"CREATE TABLE {self.sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
         select_query = f" SELECT {first_ticker_table_name}.date as date"
