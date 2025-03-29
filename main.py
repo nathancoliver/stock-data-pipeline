@@ -226,6 +226,37 @@ class Sector:
         if ticker_object.ticker_symbol not in self.tickers:
             self.tickers.append(ticker_object)
 
+    def calculate_sector_price(self):
+        drop_column_query = f"ALTER TABLE {self.sector_history_table_name} DROP COLUMN IF EXISTS {self.sector_calculated_price_column_name}"
+        self.postgresql_connection.execute_query(drop_column_query, SQLOperation.COMMIT)
+        
+        add_column_query = f"ALTER TABLE {self.sector_history_table_name} ADD COLUMN {self.sector_calculated_price_column_name} NUMERIC(10,2)"
+        self.postgresql_connection.execute_query(add_column_query, SQLOperation.COMMIT)
+
+        update_query = f"UPDATE {self.sector_history_table_name}"
+        set_query = f"SET {self.sector_calculated_price_column_name} = "
+        calculation_queries = []
+        for ticker in self.tickers:
+            calculation_queries.append(
+                f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.ticker_symbol}"
+            )
+        calculation_query = f"""{" + ".join(calculation_queries)} / {SECTOR_SHARES_OUTSTANDING}.{self.sector_symbol}"""
+        from_query = f"FROM {SECTOR_SHARES_OUTSTANDING}"
+        join_query = f"{self.sector_shares_table_name} on {self.sector_shares_table_name}.date = {SECTOR_SHARES_OUTSTANDING}.date"
+        where_query = f"WHERE {self.sector_shares_table_name}.date = {self.sector_history_table_name}.date"
+
+        query = " ".join(
+            [
+                update_query,
+                set_query,
+                calculation_query,
+                from_query,
+                join_query,
+                where_query,
+            ]
+        )
+        self.postgresql_connection.execute_query(query, SQLOperation.COMMIT)
+
     def create_sector_history_table(self):
 
         # TODO: create multiple private functions to make code more readable
@@ -257,6 +288,8 @@ class Sector:
             operation=SQLOperation.COMMIT,
         )  # TODO: remove this operation to append data to existing table
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+
+        self.calculate_sector_price()
 
 
 class Sectors:
