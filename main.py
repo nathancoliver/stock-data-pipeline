@@ -199,6 +199,9 @@ class Sector:
         self.postgresql_connection = postgresql_connection
         self.sector_history_table_name = f"{self.sector_symbol}_sector_history"
         self.sector_shares_table_name = f"{self.sector_symbol}_shares"
+        self.sector_calculated_price_column_name = (
+            f"{self.sector_symbol}_calculated_price"
+        )
         self.shares_outstanding: None | int = None
         self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector_symbol}"
         self.index_holdings_file_path: Path = Path(
