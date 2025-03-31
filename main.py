@@ -229,7 +229,7 @@ class Sector:
     def calculate_sector_price(self):
         drop_column_query = f"ALTER TABLE {self.sector_history_table_name} DROP COLUMN IF EXISTS {self.sector_calculated_price_column_name}"
         self.postgresql_connection.execute_query(drop_column_query, SQLOperation.COMMIT)
-        
+
         add_column_query = f"ALTER TABLE {self.sector_history_table_name} ADD COLUMN {self.sector_calculated_price_column_name} NUMERIC(10,2)"
         self.postgresql_connection.execute_query(add_column_query, SQLOperation.COMMIT)
 
