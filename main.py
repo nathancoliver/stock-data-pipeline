@@ -430,6 +430,10 @@ for sector in sectors.sectors:
     df_sector_shares = df_sector_shares[
         ~df_sector_shares["symbol"].str.contains("25")
     ]  # TODO: Add note as to why this is removed
+    df_sector_shares["symbol"] = sorted(
+        [make_ticker_sql_compatible(symbol) for symbol in df_sector_shares["symbol"]]
+    )
+
     df_sector_shares["weight"] = (
         df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
     )
