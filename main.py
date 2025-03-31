@@ -424,9 +424,12 @@ for sector in sectors.sectors:
     df_sector_shares.columns = [
         column.lower().replace(" ", "_") for column in df_sector_shares.columns
     ]
-    df_sector_shares = df_sector_shares[df_sector_shares["symbol"].notna()]
-    df_sector_shares = df_sector_shares[~df_sector_shares["symbol"].str.contains("25")]
-    df_sector_shares["symbol"] = df_sector_shares["symbol"].str.lower()
+    df_sector_shares = df_sector_shares[
+        df_sector_shares["symbol"].notna()
+    ]  # TODO: Add note as to why this is removed
+    df_sector_shares = df_sector_shares[
+        ~df_sector_shares["symbol"].str.contains("25")
+    ]  # TODO: Add note as to why this is removed
     df_sector_shares["weight"] = (
         df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
     )
