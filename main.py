@@ -73,7 +73,16 @@ def convert_shares_outstanding(shares_outstanding: str) -> int:
 
 
 def get_todays_date():
-    return datetime.datetime.now() - datetime.timedelta(days=1)
+    # TODO: below is a temporary solution, will need to be adjusted depending on what time the CI runs
+    today = datetime.datetime.now()
+    weekday = today.weekday()
+    if weekday >= 5:  # if Saturday to Sunday
+        weekday_adjustment = weekday - 4
+    elif weekday == 0:  # if Monday
+        weekday_adjustment = 3
+    else:  # if Tuesday to Friday
+        weekday_adjustment = 1
+    return today - datetime.timedelta(days=weekday_adjustment)
 
 
 class SQLOperation(Enum):
