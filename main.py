@@ -240,9 +240,9 @@ class Sector:
             calculation_queries.append(
                 f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.ticker_symbol}"
             )
-        calculation_query = f"""{" + ".join(calculation_queries)} / {SECTOR_SHARES_OUTSTANDING}.{self.sector_symbol}"""
+        calculation_query = f"""{" ( " + " + ".join(calculation_queries) + " ) "} / {SECTOR_SHARES_OUTSTANDING}.{self.sector_symbol}"""
         from_query = f"FROM {SECTOR_SHARES_OUTSTANDING}"
-        join_query = f"{self.sector_shares_table_name} on {self.sector_shares_table_name}.date = {SECTOR_SHARES_OUTSTANDING}.date"
+        join_query = f"JOIN {self.sector_shares_table_name} on {self.sector_shares_table_name}.date = {SECTOR_SHARES_OUTSTANDING}.date"
         where_query = f"WHERE {self.sector_shares_table_name}.date = {self.sector_history_table_name}.date"
 
         query = " ".join(
