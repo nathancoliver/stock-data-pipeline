@@ -272,14 +272,14 @@ class Sector:
         first_ticker = self.tickers[0]
         first_ticker_table_name = first_ticker.table_name
         first_ticker_price_column = first_ticker.price_column_name
-        table_name_query = f"CREATE TABLE {self.sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
+        table_name_query = f"CREATE TABLE IF NOT EXISTS {self.sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
             f", {first_ticker_table_name}.close as {first_ticker_price_column}"
         )
         from_query = f" FROM {first_ticker_table_name}"
         join_query = ""
-        where_query = f" ORDER BY {first_ticker_table_name}.date ASC"
+        order_by_query = f" ORDER BY {first_ticker_table_name}.date ASC"
         for ticker in self.tickers[1:]:
             ticker_table_name = ticker.table_name
             column_query += f", {ticker_table_name}.close as {ticker.price_column_name}"
@@ -290,7 +290,7 @@ class Sector:
             + column_query
             + from_query
             + join_query
-            + where_query
+            + order_by_query
         )
         self.postgresql_connection.execute_query(
             f"DROP TABLE IF EXISTS {self.sector_history_table_name}",
@@ -332,29 +332,24 @@ class Sectors:
     def create_shares_outstanding_table(self):
         # TODO: initilalize sql table (create table if exists ...)
         # TODO: create a row of shares outstanding and add row to existing sql tables
-        end_date = datetime.datetime.now()
-        date_range = [
-            (end_date - datetime.timedelta(days=day)).strftime("%Y-%m-%d")
-            for day in range(365)
-        ]
-        temporary_dict = {"date": date_range}
-        number_of_dates = len(date_range)
+        todays_date = get_todays_date()
+        shares_outstanding = {"date": [todays_date]}
         shares_outstanding_dtypes = {
             "date": sqlalchemy.DATE,
         }
         for sector in self.sectors:
-            temporary_dict.update(
-                {sector.sector_symbol: [sector.shares_outstanding] * number_of_dates}
+            shares_outstanding.update(
+                {sector.sector_symbol: [sector.shares_outstanding]}
             )
             shares_outstanding_dtypes.update(
                 {
                     sector.sector_symbol: sqlalchemy.types.BigInteger,
                 }
             )
-        pd.DataFrame(temporary_dict).set_index("date").to_sql(
+        pd.DataFrame(shares_outstanding).set_index("date").to_sql(
             SECTOR_SHARES_OUTSTANDING,
             con=postgresql_connection.engine,
-            if_exists="replace",  # TODO: eventually this will need to be replaced with
+            if_exists="replace",  # TODO: eventually this will need to be replaced with append
             index=True,
             index_label="date",
             dtype=shares_outstanding_dtypes,
