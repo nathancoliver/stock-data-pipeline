@@ -27,6 +27,8 @@ DATABASE = "stock_history"
 USER = "postgres"
 PASSWORD = "l"
 
+SECTOR_SHARES_OUTSTANDING = "sector_shares_outstanding"
+
 database_parameters: Dict[str, str] = {
     "host": HOST,
     "port": PORT,
@@ -71,7 +73,16 @@ def convert_shares_outstanding(shares_outstanding: str) -> int:
 
 
 def get_todays_date():
-    return datetime.datetime.now() - datetime.timedelta(days=1)
+    # TODO: below is a temporary solution, will need to be adjusted depending on what time the CI runs
+    today = datetime.datetime.now()
+    weekday = today.weekday()
+    if weekday >= 5:  # if Saturday to Sunday
+        weekday_adjustment = weekday - 4
+    elif weekday == 0:  # if Monday
+        weekday_adjustment = 3
+    else:  # if Tuesday to Friday
+        weekday_adjustment = 1
+    return today - datetime.timedelta(days=weekday_adjustment)
 
 
 class SQLOperation(Enum):
@@ -156,6 +167,7 @@ class Ticker:
         self.ticker_symbol = make_ticker_sql_compatible(ticker)
         self.yfinance_ticker = make_ticker_yfinance_compatible(ticker)
         self.table_name = f"{self.ticker_symbol}_stock_history"
+        self.price_column_name = f"{self.ticker_symbol}_price"
         self.postgresql_connection = postgresql_connection
         self.stock_history = pd.DataFrame()
 
@@ -195,8 +207,11 @@ class Sector:
         self.download_file_directory_path = chrome_driver.download_file_directory_path
         self.sector_symbol = make_ticker_sql_compatible(sector)
         self.postgresql_connection = postgresql_connection
-        self.sector_sector_history_table_name = f"{self.sector_symbol}_sector_history"
+        self.sector_history_table_name = f"{self.sector_symbol}_sector_history"
         self.sector_shares_table_name = f"{self.sector_symbol}_shares"
+        self.sector_calculated_price_column_name = (
+            f"{self.sector_symbol}_calculated_price"
+        )
         self.shares_outstanding: None | int = None
         self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector_symbol}"
         self.index_holdings_file_path: Path = Path(
@@ -220,21 +235,54 @@ class Sector:
         if ticker_object.ticker_symbol not in self.tickers:
             self.tickers.append(ticker_object)
 
-    def create_sector_history_table(self, number_of_days):
+    def calculate_sector_price(self):
+        drop_column_query = f"ALTER TABLE {self.sector_history_table_name} DROP COLUMN IF EXISTS {self.sector_calculated_price_column_name}"
+        self.postgresql_connection.execute_query(drop_column_query, SQLOperation.COMMIT)
+
+        add_column_query = f"ALTER TABLE {self.sector_history_table_name} ADD COLUMN {self.sector_calculated_price_column_name} NUMERIC(10,2)"
+        self.postgresql_connection.execute_query(add_column_query, SQLOperation.COMMIT)
+
+        update_query = f"UPDATE {self.sector_history_table_name}"
+        set_query = f"SET {self.sector_calculated_price_column_name} = "
+        calculation_queries = []
+        for ticker in self.tickers:
+            calculation_queries.append(
+                f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.ticker_symbol}"
+            )
+        calculation_query = f"""{" ( " + " + ".join(calculation_queries) + " ) "} / {SECTOR_SHARES_OUTSTANDING}.{self.sector_symbol}"""
+        from_query = f"FROM {SECTOR_SHARES_OUTSTANDING}"
+        join_query = f"JOIN {self.sector_shares_table_name} on {self.sector_shares_table_name}.date = {SECTOR_SHARES_OUTSTANDING}.date"
+        where_query = f"WHERE {self.sector_shares_table_name}.date = {self.sector_history_table_name}.date"
+
+        query = " ".join(
+            [
+                update_query,
+                set_query,
+                calculation_query,
+                from_query,
+                join_query,
+                where_query,
+            ]
+        )
+        self.postgresql_connection.execute_query(query, SQLOperation.COMMIT)
+
+    def create_sector_history_table(self):
 
         # TODO: create multiple private functions to make code more readable
-        first_ticker_table_name = self.tickers[0].table_name
-        table_name_query = f"CREATE TABLE {self.sector_sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
+        first_ticker = self.tickers[0]
+        first_ticker_table_name = first_ticker.table_name
+        first_ticker_price_column = first_ticker.price_column_name
+        table_name_query = f"CREATE TABLE IF NOT EXISTS {self.sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
-            f", {first_ticker_table_name}.close as {first_ticker_table_name}_close"
+            f", {first_ticker_table_name}.close as {first_ticker_price_column}"
         )
         from_query = f" FROM {first_ticker_table_name}"
         join_query = ""
-        where_query = f" ORDER BY {first_ticker_table_name}.date ASC"
+        order_by_query = f" ORDER BY {first_ticker_table_name}.date ASC"
         for ticker in self.tickers[1:]:
             ticker_table_name = ticker.table_name
-            column_query += f", {ticker_table_name}.close as {ticker_table_name}_close"
+            column_query += f", {ticker_table_name}.close as {ticker.price_column_name}"
             join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
         query = (
             table_name_query
@@ -242,13 +290,15 @@ class Sector:
             + column_query
             + from_query
             + join_query
-            + where_query
+            + order_by_query
         )
         self.postgresql_connection.execute_query(
-            f"DROP TABLE IF EXISTS {self.sector_sector_history_table_name}",
+            f"DROP TABLE IF EXISTS {self.sector_history_table_name}",
             operation=SQLOperation.COMMIT,
         )  # TODO: remove this operation to append data to existing table
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+
+        self.calculate_sector_price()
 
 
 class Sectors:
@@ -282,29 +332,24 @@ class Sectors:
     def create_shares_outstanding_table(self):
         # TODO: initilalize sql table (create table if exists ...)
         # TODO: create a row of shares outstanding and add row to existing sql tables
-        end_date = datetime.datetime.now()
-        date_range = [
-            (end_date - datetime.timedelta(days=day)).strftime("%Y-%m-%d")
-            for day in range(365)
-        ]
-        temporary_dict = {"date": date_range}
-        number_of_dates = len(date_range)
+        todays_date = get_todays_date()
+        shares_outstanding = {"date": [todays_date]}
         shares_outstanding_dtypes = {
             "date": sqlalchemy.DATE,
         }
         for sector in self.sectors:
-            temporary_dict.update(
-                {sector.sector_symbol: [sector.shares_outstanding] * number_of_dates}
+            shares_outstanding.update(
+                {sector.sector_symbol: [sector.shares_outstanding]}
             )
             shares_outstanding_dtypes.update(
                 {
                     sector.sector_symbol: sqlalchemy.types.BigInteger,
                 }
             )
-        pd.DataFrame(temporary_dict).set_index("date").to_sql(
-            "sector_shares_outstanding",
+        pd.DataFrame(shares_outstanding).set_index("date").to_sql(
+            SECTOR_SHARES_OUTSTANDING,
             con=postgresql_connection.engine,
-            if_exists="replace",  # TODO: eventually this will need to be replaced with
+            if_exists="replace",  # TODO: eventually this will need to be replaced with append
             index=True,
             index_label="date",
             dtype=shares_outstanding_dtypes,
@@ -374,9 +419,17 @@ for sector in sectors.sectors:
     df_sector_shares.columns = [
         column.lower().replace(" ", "_") for column in df_sector_shares.columns
     ]
-    df_sector_shares = df_sector_shares[df_sector_shares["symbol"].notna()]
-    df_sector_shares = df_sector_shares[~df_sector_shares["symbol"].str.contains("25")]
-    df_sector_shares["symbol"] = df_sector_shares["symbol"].str.lower()
+    df_sector_shares = df_sector_shares[
+        df_sector_shares["symbol"].notna()
+    ]  # TODO: Add note as to why this is removed
+    df_sector_shares = df_sector_shares[
+        ~df_sector_shares["symbol"].str.contains("25")
+    ]  # TODO: Add note as to why this is removed
+    df_sector_shares["symbol"] = [
+        make_ticker_sql_compatible(symbol) for symbol in df_sector_shares["symbol"]
+    ]
+    df_sector_shares = df_sector_shares.sort_values(by="symbol")
+
     df_sector_shares["weight"] = (
         df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
     )
@@ -442,4 +495,4 @@ for ticker in tickers.tickers.values():
             )  # Append data to stock history table.
 
 for sector in sectors.sectors:
-    sector.create_sector_history_table(30)
+    sector.create_sector_history_table()
