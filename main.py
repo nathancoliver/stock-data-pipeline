@@ -332,6 +332,14 @@ class Sectors:
     def create_shares_outstanding_table(self):
         # TODO: initilalize sql table (create table if exists ...)
         # TODO: create a row of shares outstanding and add row to existing sql tables
+        df_shares_outstanding_shares_exists = pd.read_sql(
+            SECTOR_SHARES_OUTSTANDING, postgresql_connection.engine
+        )
+        latest_date = (
+            df_shares_outstanding_shares_exists.set_index("date")
+            .sort_index(ascending=False)
+            .index[0]
+        ).to_pydatetime()
         todays_date = get_todays_date()
         shares_outstanding = {"date": [todays_date]}
         shares_outstanding_dtypes = {
@@ -346,14 +354,15 @@ class Sectors:
                     sector.sector_symbol: sqlalchemy.types.BigInteger,
                 }
             )
-        pd.DataFrame(shares_outstanding).set_index("date").to_sql(
-            SECTOR_SHARES_OUTSTANDING,
-            con=postgresql_connection.engine,
-            if_exists="replace",  # TODO: eventually this will need to be replaced with append
-            index=True,
-            index_label="date",
-            dtype=shares_outstanding_dtypes,
-        )
+        if todays_date > latest_date:
+            pd.DataFrame(shares_outstanding).set_index("date").to_sql(
+                SECTOR_SHARES_OUTSTANDING,
+                con=postgresql_connection.engine,
+                if_exists="append",  # TODO: eventually this will need to be replaced with append
+                index=True,
+                index_label="date",
+                dtype=shares_outstanding_dtypes,
+            )
 
 
 def check_table_append_compatibility(
@@ -373,6 +382,40 @@ def check_table_append_compatibility(
                 stock_history.index > latest_date_pandas_datetime
             ]  # Filter pandas stock history to not include any dates already in postgreSQL table.
     return stock_history
+
+
+def create_sector_shares_dataframe(
+    sector: Sector, todays_date: datetime.datetime
+) -> pd.DataFrame:
+
+    df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
+        ["Symbol", "Weight", "Shares Held"]
+    ]
+    df_sector_shares.columns = [
+        column.lower().replace(" ", "_") for column in df_sector_shares.columns
+    ]
+    df_sector_shares = df_sector_shares[
+        df_sector_shares["symbol"].notna()
+    ]  # TODO: Add note as to why this is removed
+    df_sector_shares = df_sector_shares[
+        ~df_sector_shares["symbol"].str.contains("25")
+    ]  # TODO: Add note as to why this is removed
+    df_sector_shares["symbol"] = [
+        make_ticker_sql_compatible(symbol) for symbol in df_sector_shares["symbol"]
+    ]
+    df_sector_shares = df_sector_shares.sort_values(by="symbol")
+
+    df_sector_shares["weight"] = (
+        df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
+    )
+    df_sector_shares["shares_held"] = (
+        df_sector_shares["shares_held"].str.replace(",", "").astype(int)
+    )
+    df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
+    df_sector_shares = pd.pivot(
+        df_sector_shares, index="date", columns="symbol", values="shares_held"
+    )
+    return df_sector_shares
 
 
 chrome_driver = ChromeDriver(stock_weight_directory)
@@ -413,53 +456,49 @@ chrome_driver.quit_driver()
 
 for sector in sectors.sectors:
     todays_date = get_todays_date()
-    df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
-        ["Symbol", "Weight", "Shares Held"]
-    ]
-    df_sector_shares.columns = [
-        column.lower().replace(" ", "_") for column in df_sector_shares.columns
-    ]
-    df_sector_shares = df_sector_shares[
-        df_sector_shares["symbol"].notna()
-    ]  # TODO: Add note as to why this is removed
-    df_sector_shares = df_sector_shares[
-        ~df_sector_shares["symbol"].str.contains("25")
-    ]  # TODO: Add note as to why this is removed
-    df_sector_shares["symbol"] = [
-        make_ticker_sql_compatible(symbol) for symbol in df_sector_shares["symbol"]
-    ]
-    df_sector_shares = df_sector_shares.sort_values(by="symbol")
-
-    df_sector_shares["weight"] = (
-        df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
-    )
-    df_sector_shares["shares_held"] = (
-        df_sector_shares["shares_held"].str.replace(",", "").astype(int)
-    )
-    df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
-    df_sector_shares = pd.pivot(
-        df_sector_shares, index="date", columns="symbol", values="shares_held"
-    )
+    df_sector_shares = create_sector_shares_dataframe(sector, todays_date)
 
     tickers_in_sector = set(df_sector_shares.columns)
     sector_weights_dtypes = {"date": sqlalchemy.Date}
-    for ticker_symbol in tickers_in_sector:
+    for (
+        ticker_symbol
+    ) in (
+        tickers_in_sector
+    ):  # TODO: check if for loop can be skipped in certain situations (e.g. latest_date is None)
         ticker_object = Ticker(ticker_symbol, postgresql_connection)
         sector.add_ticker(ticker_object)
         tickers.add_ticker(ticker_symbol, ticker_object)
         sector_weights_dtypes.update({ticker_symbol: sqlalchemy.types.BigInteger})
 
-    df_sector_shares.to_sql(
-        make_ticker_sql_compatible(sector.sector_shares_table_name),
-        con=postgresql_connection.engine,
-        if_exists="replace",
-        index=True,
-        index_label="date",
-        dtype=sector_weights_dtypes,  # TODO: update dtypes
-    )
-    postgresql_connection.set_primary_key(
-        sector.sector_shares_table_name, column="date"
-    )
+    try:
+        df_sector_shares_exists = pd.read_sql(
+            sector.sector_shares_table_name, postgresql_connection.engine
+        )
+        latest_date = (
+            df_sector_shares_exists.set_index("date")
+            .sort_index(ascending=False)
+            .index[0]
+        ).to_pydatetime()
+        if_exists = "append"
+    except:
+        latest_date = None
+        if_exists = "replace"
+
+    if (latest_date is not None) and (
+        todays_date > latest_date
+    ):  # TODO: fix date comparison
+        df_sector_shares.to_sql(
+            make_ticker_sql_compatible(sector.sector_shares_table_name),
+            con=postgresql_connection.engine,
+            if_exists=if_exists,
+            index=True,
+            index_label="date",
+            dtype=sector_weights_dtypes,  # TODO: update dtypes
+        )
+    if if_exists == "replace":
+        postgresql_connection.set_primary_key(
+            sector.sector_shares_table_name, column="date"
+        )
 
 sectors.create_shares_outstanding_table()
 
