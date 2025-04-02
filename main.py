@@ -384,6 +384,40 @@ def check_table_append_compatibility(
     return stock_history
 
 
+def create_sector_shares_dataframe(
+    sector: Sector, todays_date: datetime.datetime
+) -> pd.DataFrame:
+
+    df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
+        ["Symbol", "Weight", "Shares Held"]
+    ]
+    df_sector_shares.columns = [
+        column.lower().replace(" ", "_") for column in df_sector_shares.columns
+    ]
+    df_sector_shares = df_sector_shares[
+        df_sector_shares["symbol"].notna()
+    ]  # TODO: Add note as to why this is removed
+    df_sector_shares = df_sector_shares[
+        ~df_sector_shares["symbol"].str.contains("25")
+    ]  # TODO: Add note as to why this is removed
+    df_sector_shares["symbol"] = [
+        make_ticker_sql_compatible(symbol) for symbol in df_sector_shares["symbol"]
+    ]
+    df_sector_shares = df_sector_shares.sort_values(by="symbol")
+
+    df_sector_shares["weight"] = (
+        df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
+    )
+    df_sector_shares["shares_held"] = (
+        df_sector_shares["shares_held"].str.replace(",", "").astype(int)
+    )
+    df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
+    df_sector_shares = pd.pivot(
+        df_sector_shares, index="date", columns="symbol", values="shares_held"
+    )
+    return df_sector_shares
+
+
 chrome_driver = ChromeDriver(stock_weight_directory)
 chrome_driver.create_directory()
 
@@ -422,33 +456,7 @@ chrome_driver.quit_driver()
 
 for sector in sectors.sectors:
     todays_date = get_todays_date()
-    df_sector_shares = pd.read_csv(sector.portfolio_holdings_file_path, header=1)[
-        ["Symbol", "Weight", "Shares Held"]
-    ]
-    df_sector_shares.columns = [
-        column.lower().replace(" ", "_") for column in df_sector_shares.columns
-    ]
-    df_sector_shares = df_sector_shares[
-        df_sector_shares["symbol"].notna()
-    ]  # TODO: Add note as to why this is removed
-    df_sector_shares = df_sector_shares[
-        ~df_sector_shares["symbol"].str.contains("25")
-    ]  # TODO: Add note as to why this is removed
-    df_sector_shares["symbol"] = [
-        make_ticker_sql_compatible(symbol) for symbol in df_sector_shares["symbol"]
-    ]
-    df_sector_shares = df_sector_shares.sort_values(by="symbol")
-
-    df_sector_shares["weight"] = (
-        df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
-    )
-    df_sector_shares["shares_held"] = (
-        df_sector_shares["shares_held"].str.replace(",", "").astype(int)
-    )
-    df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
-    df_sector_shares = pd.pivot(
-        df_sector_shares, index="date", columns="symbol", values="shares_held"
-    )
+    df_sector_shares = create_sector_shares_dataframe(sector, todays_date)
 
     tickers_in_sector = set(df_sector_shares.columns)
     sector_weights_dtypes = {"date": sqlalchemy.Date}
