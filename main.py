@@ -452,7 +452,11 @@ for sector in sectors.sectors:
 
     tickers_in_sector = set(df_sector_shares.columns)
     sector_weights_dtypes = {"date": sqlalchemy.Date}
-    for ticker_symbol in tickers_in_sector:
+    for (
+        ticker_symbol
+    ) in (
+        tickers_in_sector
+    ):  # TODO: check if for loop can be skipped in certain situations (e.g. latest_date is None)
         ticker_object = Ticker(ticker_symbol, postgresql_connection)
         sector.add_ticker(ticker_object)
         tickers.add_ticker(ticker_symbol, ticker_object)
