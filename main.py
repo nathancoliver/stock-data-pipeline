@@ -332,6 +332,14 @@ class Sectors:
     def create_shares_outstanding_table(self):
         # TODO: initilalize sql table (create table if exists ...)
         # TODO: create a row of shares outstanding and add row to existing sql tables
+        df_shares_outstanding_shares_exists = pd.read_sql(
+            SECTOR_SHARES_OUTSTANDING, postgresql_connection.engine
+        )
+        latest_date = (
+            df_shares_outstanding_shares_exists.set_index("date")
+            .sort_index(ascending=False)
+            .index[0]
+        ).to_pydatetime()
         todays_date = get_todays_date()
         shares_outstanding = {"date": [todays_date]}
         shares_outstanding_dtypes = {
