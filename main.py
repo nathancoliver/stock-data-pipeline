@@ -354,14 +354,15 @@ class Sectors:
                     sector.sector_symbol: sqlalchemy.types.BigInteger,
                 }
             )
-        pd.DataFrame(shares_outstanding).set_index("date").to_sql(
-            SECTOR_SHARES_OUTSTANDING,
-            con=postgresql_connection.engine,
-            if_exists="replace",  # TODO: eventually this will need to be replaced with append
-            index=True,
-            index_label="date",
-            dtype=shares_outstanding_dtypes,
-        )
+        if todays_date > latest_date:
+            pd.DataFrame(shares_outstanding).set_index("date").to_sql(
+                SECTOR_SHARES_OUTSTANDING,
+                con=postgresql_connection.engine,
+                if_exists="append",  # TODO: eventually this will need to be replaced with append
+                index=True,
+                index_label="date",
+                dtype=shares_outstanding_dtypes,
+            )
 
 
 def check_table_append_compatibility(
