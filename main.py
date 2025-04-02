@@ -458,17 +458,35 @@ for sector in sectors.sectors:
         tickers.add_ticker(ticker_symbol, ticker_object)
         sector_weights_dtypes.update({ticker_symbol: sqlalchemy.types.BigInteger})
 
-    df_sector_shares.to_sql(
-        make_ticker_sql_compatible(sector.sector_shares_table_name),
-        con=postgresql_connection.engine,
-        if_exists="replace",
-        index=True,
-        index_label="date",
-        dtype=sector_weights_dtypes,  # TODO: update dtypes
-    )
-    postgresql_connection.set_primary_key(
-        sector.sector_shares_table_name, column="date"
-    )
+    try:
+        df_sector_shares_exists = pd.read_sql(
+            sector.sector_shares_table_name, postgresql_connection.engine
+        )
+        latest_date = (
+            df_sector_shares_exists.set_index("date")
+            .sort_index(ascending=False)
+            .index[0]
+        ).to_pydatetime()
+        if_exists = "append"
+    except:
+        latest_date = None
+        if_exists = "replace"
+
+    if (latest_date is not None) and (
+        todays_date > latest_date
+    ):  # TODO: fix date comparison
+        df_sector_shares.to_sql(
+            make_ticker_sql_compatible(sector.sector_shares_table_name),
+            con=postgresql_connection.engine,
+            if_exists=if_exists,
+            index=True,
+            index_label="date",
+            dtype=sector_weights_dtypes,  # TODO: update dtypes
+        )
+    if if_exists == "replace":
+        postgresql_connection.set_primary_key(
+            sector.sector_shares_table_name, column="date"
+        )
 
 sectors.create_shares_outstanding_table()
 
