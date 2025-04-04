@@ -256,10 +256,14 @@ class Sector:
         self.index_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[1]"
         self.portfolio_tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
         self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
+        self.sector_shares_data_types = {"Date": DataTypes.DATE}
 
     def add_ticker(self, ticker_object: Ticker):
         if ticker_object.ticker_symbol not in self.tickers:
             self.tickers.append(ticker_object)
+            self.sector_shares_data_types.update(
+                {ticker_object.ticker_symbol: DataTypes.BIGINT}
+            )
 
     def calculate_sector_price(self):
         drop_column_query = f"ALTER TABLE {self.sector_history_table_name} DROP COLUMN IF EXISTS {self.sector_calculated_price_column_name}"
@@ -340,6 +344,10 @@ class Sectors:
             "sector": [],
             "shares_outstanding": [],
         }
+        self.sector_shares_outstanding_dtypes: Dict[str, DataTypes] = {
+            "Date": DataTypes.DATE
+        }
+        self.postgresql_connection = postgresql_connection
 
         with open(file_path, "r", encoding="utf-8") as file:
             for sector_ticker in file:
@@ -347,8 +355,11 @@ class Sectors:
                     Sector(
                         sector_ticker.rstrip("\n"),
                         chrome_driver=chrome_driver,
-                        postgresql_connection=postgresql_connection,
+                        postgresql_connection=self.postgresql_connection,
                     )
+                )
+                self.sector_shares_outstanding_dtypes.update(
+                    {sector_ticker: DataTypes.BIGINT}
                 )
 
     def append_shares_outstanding_dict(self, sector: Sector, shares_outstanding: int):
@@ -516,6 +527,10 @@ for sector in sectors.sectors:
         ticker_object = Ticker(ticker_symbol, postgresql_connection)
         sector.add_ticker(ticker_object)
         tickers.add_ticker(ticker_symbol, ticker_object)
+        sector_weights_dtypes.update(
+            {ticker_symbol: sqlalchemy.types.BigInteger}
+        )  # TODO: Move this to Sector class, specifically init function and add_ticker func.
+
     if todays_date > latest_date:  # TODO: fix date comparison
         df_sector_shares.to_sql(
             make_ticker_sql_compatible(sector.sector_shares_table_name),
