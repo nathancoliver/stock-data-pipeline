@@ -105,6 +105,15 @@ def get_sql_table_latest_date(
         return None
 
 
+def convert_sql_data_type_into_string(data_types: Dict[str, DataTypes]) -> str:
+    return ", ".join(
+        [
+            f"{column_name} {data_type.value}"
+            for column_name, data_type in data_types.items()
+        ]
+    )
+
+
 class SQLOperation(Enum):
     EXECUTE = "execute"
     COMMIT = "commit"
