@@ -72,6 +72,10 @@ def convert_shares_outstanding(shares_outstanding: str) -> int:
         )
 
 
+# TODO: create Tables class for function belows, and give inheritance to classes that need Tables class
+# TODO: Tables class will probably need to inherit PostgreSQLConnection class. (need to confirm)
+
+
 def get_todays_date():
     # TODO: below is a temporary solution, will need to be adjusted depending on what time the CI runs
     today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
