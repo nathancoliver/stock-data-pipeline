@@ -85,6 +85,22 @@ def get_todays_date():
     return today - datetime.timedelta(days=weekday_adjustment)
 
 
+def get_sql_table_latest_date(
+    table_name: str, engine: sqlalchemy.engine.Engine
+) -> datetime.datetime | None:
+
+    try:
+        df_shares_outstanding_shares_exists = pd.read_sql(table_name, engine)
+        latest_date = (
+            df_shares_outstanding_shares_exists.set_index("date")
+            .sort_index(ascending=False)
+            .index[0]
+        ).to_pydatetime()  # TODO: figure out how to type hint this date
+        return latest_date
+    except:
+        return None
+
+
 class SQLOperation(Enum):
     EXECUTE = "execute"
     COMMIT = "commit"
@@ -117,6 +133,12 @@ class PostgreSQLConnection:
     def set_primary_key(self, table_name: str, column: str) -> None:
         query = f"ALTER TABLE {table_name} ADD PRIMARY KEY ({column})"
         self.execute_query(query, SQLOperation.COMMIT)
+
+
+def set_table_primary_key(
+    table_name: str, primary_key: str, postgresql_connection: PostgreSQLConnection
+) -> None:
+    postgresql_connection.set_primary_key(table_name, column=primary_key)
 
 
 class ChromeDriver:
@@ -174,7 +196,7 @@ class Ticker:
         query = f"CREATE TABLE IF NOT EXISTS {self.table_name} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
-    def get_latest_date(self) -> datetime.date | None:
+    def get_stock_history_latest_date(self) -> datetime.datetime | None:
         """Get most recent date from stock history. If no stock history, return None."""
 
         query = f"SELECT MAX(DATE) FROM {self.table_name}"
@@ -330,17 +352,17 @@ class Sectors:
         self.shares_outstanding["shares_outstanding"].append(shares_outstanding)
 
     def create_shares_outstanding_table(self):
+        initialize_table(
+            SECTOR_SHARES_OUTSTANDING,
+            self.sector_shares_outstanding_dtypes,
+            postgresql_connection=self.postgresql_connection,
+        )
         # TODO: initilalize sql table (create table if exists ...)
         # TODO: create a row of shares outstanding and add row to existing sql tables
-        df_shares_outstanding_shares_exists = pd.read_sql(
+        todays_date = get_todays_date()
+        latest_date = get_sql_table_latest_date(
             SECTOR_SHARES_OUTSTANDING, postgresql_connection.engine
         )
-        latest_date = (
-            df_shares_outstanding_shares_exists.set_index("date")
-            .sort_index(ascending=False)
-            .index[0]
-        ).to_pydatetime()
-        todays_date = get_todays_date()
         shares_outstanding = {"date": [todays_date]}
         shares_outstanding_dtypes = {
             "date": sqlalchemy.DATE,
@@ -363,6 +385,20 @@ class Sectors:
                 index_label="date",
                 dtype=shares_outstanding_dtypes,
             )
+        if latest_date is None:
+            set_table_primary_key(
+                SECTOR_SHARES_OUTSTANDING, "date", self.postgresql_connection
+            )
+
+
+def initialize_table(
+    table_name: str,
+    data_types: Dict[str, DataTypes],
+    postgresql_connection: PostgreSQLConnection,
+) -> None:
+    dtypes_string = convert_sql_data_type_into_string(data_types)
+    query = f"CREATE TABLE IF NOT EXISTS {table_name} ({dtypes_string})"
+    postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
 
 def check_table_append_compatibility(
@@ -455,8 +491,16 @@ for sector in sectors.sectors:
 chrome_driver.quit_driver()
 
 for sector in sectors.sectors:
+    initialize_table(
+        sector.sector_shares_table_name,
+        sector.sector_shares_data_types,
+        postgresql_connection=sector.postgresql_connection,
+    )
     todays_date = get_todays_date()
     df_sector_shares = create_sector_shares_dataframe(sector, todays_date)
+    latest_date = get_sql_table_latest_date(
+        sector.sector_shares_table_name, postgresql_connection.engine
+    )
 
     tickers_in_sector = set(df_sector_shares.columns)
     sector_weights_dtypes = {"date": sqlalchemy.Date}
@@ -468,36 +512,18 @@ for sector in sectors.sectors:
         ticker_object = Ticker(ticker_symbol, postgresql_connection)
         sector.add_ticker(ticker_object)
         tickers.add_ticker(ticker_symbol, ticker_object)
-        sector_weights_dtypes.update({ticker_symbol: sqlalchemy.types.BigInteger})
-
-    try:
-        df_sector_shares_exists = pd.read_sql(
-            sector.sector_shares_table_name, postgresql_connection.engine
-        )
-        latest_date = (
-            df_sector_shares_exists.set_index("date")
-            .sort_index(ascending=False)
-            .index[0]
-        ).to_pydatetime()
-        if_exists = "append"
-    except:
-        latest_date = None
-        if_exists = "replace"
-
-    if (latest_date is not None) and (
-        todays_date > latest_date
-    ):  # TODO: fix date comparison
+    if todays_date > latest_date:  # TODO: fix date comparison
         df_sector_shares.to_sql(
             make_ticker_sql_compatible(sector.sector_shares_table_name),
             con=postgresql_connection.engine,
-            if_exists=if_exists,
+            if_exists="append",
             index=True,
             index_label="date",
-            dtype=sector_weights_dtypes,  # TODO: update dtypes
+            dtype=sector_weights_dtypes,
         )
-    if if_exists == "replace":
-        postgresql_connection.set_primary_key(
-            sector.sector_shares_table_name, column="date"
+    if latest_date is None:
+        set_table_primary_key(
+            sector.sector_shares_table_name, "date", postgresql_connection
         )
 
 sectors.create_shares_outstanding_table()
@@ -505,7 +531,9 @@ sectors.create_shares_outstanding_table()
 # Create or append stock history table for each ticker.
 for ticker in tickers.tickers.values():
 
-    latest_date = ticker.get_latest_date()  # Get latest date of stock history table.
+    latest_date = (
+        ticker.get_stock_history_latest_date()
+    )  # Get latest date of stock history table.
     collect_stock_data = CollectDailyData(
         ticker.yfinance_ticker, latest_date=latest_date
     )  # initialize CollectDailyData class.
