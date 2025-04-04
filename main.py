@@ -51,6 +51,13 @@ sectors_file_name = "spdr_sectors.txt"
 sectors_file_path = Path(config_directory, sectors_file_name)
 
 
+class DataTypes(Enum):
+    BIGINT = "BIGINT"
+    DATE = "DATE"
+    INT = "INT"
+    NUMERIC_10_2 = "NUMERIC(10, 2)"
+
+
 def make_ticker_sql_compatible(name: str) -> str:
     return name.replace(".", "_").lower()
 
