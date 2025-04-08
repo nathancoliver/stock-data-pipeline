@@ -10,11 +10,13 @@ import sqlalchemy
 
 from selenium.webdriver.common.by import By
 
+
 from stock_data_pipeline.chrome_driver import ChromeDriver
 from stock_data_pipeline.functions import (
     check_table_append_compatibility,
     get_sql_table_latest_date,
     get_todays_date,
+    get_market_day,
     initialize_table,
     make_ticker_sql_compatible,
     set_table_primary_key,
@@ -67,7 +69,7 @@ sectors = Sectors(
 )
 tickers = Tickers()
 
-for sector in sectors.sectors:
+market_day = get_market_day(get_todays_date())
 
     chrome_driver.load_url(sector.url)
     shares_outstanding = sectors.convert_shares_outstanding(

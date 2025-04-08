@@ -6,6 +6,7 @@ from .functions import (
     check_table_append_compatibility,
     convert_sql_data_type_into_string,
     get_sql_table_latest_date,
+    get_market_day,
     get_todays_date,
     initialize_table,
     make_ticker_sql_compatible,

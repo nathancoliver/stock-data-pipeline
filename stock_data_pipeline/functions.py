@@ -8,6 +8,7 @@ from typing import Dict
 
 
 import pandas as pd  # type: ignore
+import pandas_market_calendars as mcal
 import sqlalchemy
 
 
@@ -43,6 +44,14 @@ def convert_sql_data_type_into_string(data_types: Dict[str, DataTypes]) -> str:
     )
 
 
+def get_market_day(date: datetime.datetime) -> bool:
+    nyse = mcal.get_calendar("NYSE")
+    market_days = nyse.valid_days(start_date=date, end_date=date)
+    if len(market_days) > 0:  # TODO: make this more robust
+        return True
+    return False
+
+
 def get_sql_table_latest_date(
     table_name: str, engine: sqlalchemy.engine.Engine
 ) -> datetime.datetime | None:
@@ -59,7 +68,7 @@ def get_sql_table_latest_date(
         return None
 
 
-def get_todays_date():
+def get_todays_date() -> datetime.datetime:
     # TODO: below is a temporary solution, will need to be adjusted depending on what time the CI runs
     today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     weekday = today.weekday()
