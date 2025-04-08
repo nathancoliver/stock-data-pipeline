@@ -10,6 +10,7 @@ import sqlalchemy
 
 from selenium.webdriver.common.by import By
 
+
 from stock_data_pipeline.chrome_driver import ChromeDriver
 from stock_data_pipeline.functions import (
     check_table_append_compatibility,
