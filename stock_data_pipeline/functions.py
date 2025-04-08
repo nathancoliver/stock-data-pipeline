@@ -68,7 +68,7 @@ def get_sql_table_latest_date(
         return None
 
 
-def get_todays_date():
+def get_todays_date() -> datetime.datetime:
     # TODO: below is a temporary solution, will need to be adjusted depending on what time the CI runs
     today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     weekday = today.weekday()
