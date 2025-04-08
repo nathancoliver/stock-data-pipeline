@@ -3,6 +3,7 @@
 
 
 import datetime
+import re
 from typing import Dict
 
 
@@ -86,7 +87,7 @@ def make_ticker_sql_compatible(name: str) -> str:
 
 
 def make_ticker_yfinance_compatible(name: str) -> str:
-    return name.replace(".", "-")
+    return re.sub(r"[._]", "-", name)
 
 
 def set_table_primary_key(
