@@ -8,6 +8,7 @@ version = "0.0"
 [tool.poetry.dependencies]
 SQLAlchemy = "*" 
 pandas = "*" 
+pandas_market_calendars = "*" 
 psycopg2 = "*" 
 pyarrow = "*" 
 python = "^3.11" 
