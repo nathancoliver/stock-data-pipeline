@@ -71,6 +71,8 @@ tickers = Tickers()
 
 market_day = get_market_day(get_todays_date())
 
+for sector in sectors.sectors:
+
     chrome_driver.load_url(sector.url)
     shares_outstanding = sectors.convert_shares_outstanding(
         chrome_driver.driver.find_element(
