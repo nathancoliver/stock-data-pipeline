@@ -2,8 +2,9 @@
 Download stock data from Yahoo Finance, transform data in SQL, and load data into AWS.
 """
 
-import time
+import os
 from pathlib import Path
+import time
 from typing import Dict
 import sqlalchemy
 
@@ -27,22 +28,27 @@ from stock_data_pipeline.ticker import Ticker
 from stock_data_pipeline.tickers import Tickers
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
 
+AWS_PASSWORD = os.getenv("AWS_RDS_PASSWORD")
+AWS_USERNAME = os.getenv("AWS_RDS_USERNAME")
+S3_STOCK_DATA_PIPELINE_BUCKET_NAME = os.getenv("S3_STOCK_DATA_PIPELINE_BUCKET_NAME")
 
-HOST = "localhost"
-PORT = 5432
-DATABASE = "stock_history"
-USER = "postgres"
-PASSWORD = "l"
+POSTGRESQL_HOST = os.getenv("POSTGRESQL_HOST", "localhost")
+POSTGRESQL_PORT = os.getenv("POSTGRESQL_PORT", "5432")
+POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE = os.getenv(
+    "POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE", "mydatabase"
+)
+POSTGRESQL_USER = os.getenv("POSTGRESQL_USER", "postgres")
+POSTGRESQL_PASSWORD = os.getenv("POSTGRESQL_PASSWORD", "postgres")
 
 
 database_parameters: Dict[str, str | int] = {
-    "host": HOST,
-    "port": PORT,
-    "dbname": DATABASE,
-    "user": USER,
-    "password": PASSWORD,
+    "host": POSTGRESQL_HOST,
+    "port": POSTGRESQL_PORT,
+    "dbname": POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE,
+    "user": POSTGRESQL_USER,
+    "password": POSTGRESQL_PASSWORD,
 }
-engine_parameters = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
+engine_parameters = f"postgresql+psycopg2://{POSTGRESQL_USER}:{POSTGRESQL_PASSWORD}@{POSTGRESQL_HOST}:{POSTGRESQL_PORT}/{POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE}"
 stock_history_dtypes = {
     "date": sqlalchemy.DATE,
     "open": sqlalchemy.types.Numeric(10, 2),
