@@ -58,6 +58,14 @@ jobs:
     - name: Install dependencies with poetry
       run: |
         poetry install
+    - name: Install Chrome
+      run: |
+        sudo apt update
+        sudo apt install -y google-chrome-stable
+    - name: Install ChromeDriver
+      run: |
+        sudo apt install -y chromium-chromedriver
+        sudo ln -s /usr/lib/chromium-browser/chromedriver /usr/bin/chromedriver
     - name: Run main.py
       run: |
         poetry run python main.py
