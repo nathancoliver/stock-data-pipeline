@@ -58,14 +58,23 @@ jobs:
     - name: Install dependencies with poetry
       run: |
         poetry install
-    - name: Install Chrome
+    - name: Set up Chrome and ChromeDriver
       run: |
         sudo apt update
-        sudo apt install -y google-chrome-stable
-    - name: Install ChromeDriver
-      run: |
-        sudo apt install -y chromium-chromedriver
-        sudo ln -s /usr/lib/chromium-browser/chromedriver /usr/bin/chromedriver
+        sudo apt install -y wget unzip
+    
+        # Install latest Chrome
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo apt install -y ./google-chrome-stable_current_amd64.deb
+    
+        # Get matching ChromeDriver version
+        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+        CHROMEDRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+    
+        wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        unzip chromedriver_linux64.zip
+        chmod +x chromedriver
+        sudo mv chromedriver /usr/bin/chromedriver
     - name: Run main.py
       run: |
         poetry run python main.py
