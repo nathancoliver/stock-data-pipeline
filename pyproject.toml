@@ -6,7 +6,9 @@ package-mode = false
 version = "0.0"
 
 [tool.poetry.dependencies]
-SQLAlchemy = "*" 
+SQLAlchemy = "2.0.40" 
+chromedriver-autoinstaller = "*" 
+greenlet = "3.1.1" 
 pandas = "*" 
 pandas_market_calendars = "*" 
 psycopg2 = "*" 
