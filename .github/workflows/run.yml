@@ -60,26 +60,11 @@ jobs:
         poetry install
     - name: Set up Chrome and ChromeDriver
       run: |
-        sudo apt update
-        sudo apt install -y wget unzip
-    
-        # Install Chrome
+        set -ex
         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo apt install -y ./google-chrome-stable_current_amd64.deb
-    
-        # Extract Chrome major version (e.g., 135)
-        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+' | head -1)
-    
-        # Get latest matching ChromeDriver version
-        CHROMEDRIVER_VERSION=$(wget -qO- https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION)
-    
-        echo "Using ChromeDriver version: $CHROMEDRIVER_VERSION"
-    
-        # Download and install ChromeDriver
-        wget https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
-        unzip chromedriver_linux64.zip
-        chmod +x chromedriver
-        sudo mv chromedriver /usr/bin/chromedriver
+        sudo apt install ./google-chrome-stable_current_amd64.deb
+        - uses: nanasess/setup-chromedriver@v1
+        - run: chromedriver --url-base=/wd/hub &amp;
     - name: Run main.py
       run: |
         poetry run python main.py
