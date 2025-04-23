@@ -60,5 +60,5 @@ class ChromeDriver:
         self.driver.save_screenshot(path_name)
 
     def save_html_page(self):
-        with open("screenshots/page_source.html", "w", encoding="utf-8") as f:
+        with open("data_dump/page_source.html", "w", encoding="utf-8") as f:
             f.write(self.driver.page_source)
