@@ -20,21 +20,17 @@ class ChromeDriver:
             f"{os.getcwd()}\\{download_file_directory}"
         )
 
-        # Update ChromeDriver preferences to download files to self.download_file_directory
+        # Update ChromeDriver preferences to download files to self.download_file_directory_absolute_path
         options = webdriver.ChromeOptions()
         prefs = {
             "download.default_directory": self.download_file_directory_absolute_path
         }
         options.add_experimental_option("prefs", prefs)
-        options.add_argument("--headless=new")  # Use new headless mode
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
 
-        # Get the path from the environment (we'll set it in GitHub Actions)
-        chromedriver_path = os.getenv(
-            "CHROMEDRIVER_PATH", "chromedriver"
-        )  # fallback to local
-
+        chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "chromedriver")
         service = Service(chromedriver_path)
         self.driver = webdriver.Chrome(service=service, options=options)
         self.wait = WebDriverWait(self.driver, 10)
