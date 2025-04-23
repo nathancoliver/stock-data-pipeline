@@ -38,7 +38,7 @@ jobs:
           python test.py
 
       - name: Upload output file as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: selenium-output
           path: elements_output.txt
