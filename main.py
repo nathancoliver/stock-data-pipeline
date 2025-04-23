@@ -62,7 +62,7 @@ config_directory = "config"
 sectors_file_name = "spdr_sectors.txt"
 sectors_file_path = Path(config_directory, sectors_file_name)
 
-os.makedirs("screenshots", exist_ok=True)
+# os.makedirs("screenshots", exist_ok=True)
 
 chrome_driver = ChromeDriver(stock_weight_directory)
 chrome_driver.create_directory()
@@ -82,23 +82,23 @@ if market_day:
     for sector in sectors.sectors:
 
         chrome_driver.load_url(sector.url)
-        chrome_driver.save_screenshot("screenshots/debug1.png")
+        # chrome_driver.save_screenshot("screenshots/debug1.png")
         shares_outstanding = sectors.convert_shares_outstanding(
             chrome_driver.driver.find_element(
                 By.XPATH, sector.shares_outstanding_xpath
             ).text
         )
-        chrome_driver.save_screenshot("screenshots/debug2.png")
+        # chrome_driver.save_screenshot("screenshots/debug2.png")
         sectors.append_shares_outstanding_dict(sector, shares_outstanding)
-        chrome_driver.save_screenshot("screenshots/debug3.png")
+        # chrome_driver.save_screenshot("screenshots/debug3.png")
         sector.shares_outstanding = shares_outstanding
         time.sleep(2)
-        chrome_driver.save_screenshot("screenshots/debug4.png")
-        chrome_driver.press_button(sector.index_csv_xpath)
-        while (
-            not sector.index_holdings_file_path.exists()
-        ):  # Wait until file is downloaded.
-            time.sleep(0.1)
+        # chrome_driver.save_screenshot("screenshots/debug4.png")
+        # chrome_driver.press_button(sector.index_csv_xpath)
+        # while (
+        #     not sector.index_holdings_file_path.exists()
+        # ):  # Wait until file is downloaded.
+        #     time.sleep(0.1)
         chrome_driver.press_button(sector.portfolio_tab_xpath)
         chrome_driver.press_button(sector.portfolio_csv_xpath)
         while (

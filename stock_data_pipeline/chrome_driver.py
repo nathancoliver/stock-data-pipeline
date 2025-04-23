@@ -26,7 +26,7 @@ class ChromeDriver:
             "download.default_directory": self.download_file_directory_absolute_path
         }
         options.add_experimental_option("prefs", prefs)
-        # options.add_argument("--headless=new")
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
 
