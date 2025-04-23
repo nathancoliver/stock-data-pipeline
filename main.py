@@ -62,7 +62,7 @@ config_directory = "config"
 sectors_file_name = "spdr_sectors.txt"
 sectors_file_path = Path(config_directory, sectors_file_name)
 
-# os.makedirs("screenshots", exist_ok=True)
+os.makedirs("data_dump", exist_ok=True)
 
 chrome_driver = ChromeDriver(stock_weight_directory)
 chrome_driver.create_directory()
@@ -82,6 +82,8 @@ if market_day:
     for sector in sectors.sectors:
 
         chrome_driver.load_url(sector.url)
+        time.sleep(2)
+        chrome_driver.save_html_page()
         # chrome_driver.save_screenshot("screenshots/debug1.png")
         shares_outstanding = sectors.convert_shares_outstanding(
             chrome_driver.driver.find_element(
