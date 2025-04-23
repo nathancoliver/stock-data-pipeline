@@ -31,6 +31,7 @@ class ChromeDriver:
         options.add_argument("--disable-dev-shm-usage")
 
         chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "chromedriver")
+        print("chromedriver_path", chromedriver_path)
         service = Service(chromedriver_path)
         self.driver = webdriver.Chrome(service=service, options=options)
         self.wait = WebDriverWait(self.driver, 10)
