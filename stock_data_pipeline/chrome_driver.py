@@ -60,5 +60,10 @@ class ChromeDriver:
         self.driver.save_screenshot(path_name)
 
     def save_html_page(self):
-        with open("data_dump/page_source.html", "w", encoding="utf-8") as f:
-            f.write(self.driver.page_source)
+        elements = self.driver.find_elements(
+            By.XPATH, """//*[@id="__BVID__118"]/div/div[1]/div[2]/button[1]"""
+        )
+        xpaths = []
+        for element in elements:
+            xpath = element.get_attribute("xpath")  # This gets the XPath as a string
+            xpaths.append(xpath)

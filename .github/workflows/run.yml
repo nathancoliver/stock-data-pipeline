@@ -69,18 +69,8 @@ jobs:
         poetry run python main.py
       env:
         CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
-    - name: Upload all screenshots
+    - name: Upload html data dump
       uses: actions/upload-artifact@v4
       with:
         name: data-dump
         path: data_dump/
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      if: false # Remove if: false statement once test section has been developed
-      run: |
-        pytest

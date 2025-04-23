@@ -50,7 +50,10 @@ class Sector:
         )
         self.index_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[1]"
         self.portfolio_tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
-        self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
+        # self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
+        self.portfolio_csv_xpath = (
+            """//*[@id="__BVID__118"]/div/div[1]/div[2]/button[1]"""
+        )
         self.sector_shares_data_types = {"Date": DataTypes.DATE}
 
     def add_ticker(self, ticker_object: Ticker):
