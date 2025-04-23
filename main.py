@@ -88,6 +88,7 @@ if market_day:
         )
         sectors.append_shares_outstanding_dict(sector, shares_outstanding)
         sector.shares_outstanding = shares_outstanding
+        time.sleep(2)
         chrome_driver.press_button(sector.index_csv_xpath)
         while (
             not sector.index_holdings_file_path.exists()
