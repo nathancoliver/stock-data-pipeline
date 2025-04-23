@@ -69,6 +69,12 @@ jobs:
         poetry run python main.py
       env:
         CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+    - name: Upload all screenshots
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: selenium-screenshots
+        path: screenshots/
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
