@@ -44,7 +44,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/upload-artifact@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
@@ -71,8 +70,7 @@ jobs:
       env:
         CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
     - name: Upload all screenshots
-      if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: selenium-screenshots
         path: screenshots/
