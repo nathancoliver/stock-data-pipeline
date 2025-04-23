@@ -74,7 +74,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: selenium-screenshots
-        path: screenshots/
+        path: screenshots/debug4.png
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
