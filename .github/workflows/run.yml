@@ -58,16 +58,17 @@ jobs:
     - name: Install dependencies with poetry
       run: |
         poetry install
-    - name: Set up Chrome and ChromeDriver
-      run: |
-        set -ex
-        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo apt install ./google-chrome-stable_current_amd64.deb
-        - uses: nanasess/setup-chromedriver@v1
-        - run: chromedriver --url-base=/wd/hub &amp;
+    - uses: browser-actions/setup-chrome@v1
+      id: chrome
+      with:
+        chrome-version: 135
+        install-chromedriver: true
+        install-dependencies: true
     - name: Run main.py
       run: |
         poetry run python main.py
+      env:
+        CHROMEDRIVER_PATH: ${{ steps.chrome.outputs.chrome-path }}
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names

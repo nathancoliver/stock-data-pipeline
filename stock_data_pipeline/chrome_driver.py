@@ -3,12 +3,12 @@ import time
 from pathlib import Path
 from shutil import rmtree
 
-import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
 
 
 class ChromeDriver:
@@ -20,8 +20,6 @@ class ChromeDriver:
             f"{os.getcwd()}\\{download_file_directory}"
         )
 
-        chromedriver_autoinstaller.install()
-
         # Update ChromeDriver preferences to download files to self.download_file_directory
         options = webdriver.ChromeOptions()
         prefs = {
@@ -32,8 +30,13 @@ class ChromeDriver:
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
 
-        self.driver = webdriver.Chrome(options=options)
+        # Get the path from the environment (we'll set it in GitHub Actions)
+        chromedriver_path = os.getenv(
+            "CHROMEDRIVER_PATH", "chromedriver"
+        )  # fallback to local
 
+        service = Service(chromedriver_path)
+        self.driver = webdriver.Chrome(service=service, options=options)
         self.wait = WebDriverWait(self.driver, 10)
 
     def create_directory(self):
