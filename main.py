@@ -10,6 +10,7 @@ import sqlalchemy
 
 
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 
 
 from stock_data_pipeline.chrome_driver import ChromeDriver
@@ -102,7 +103,9 @@ if market_day:
         # ):  # Wait until file is downloaded.
         #     time.sleep(0.1)
         chrome_driver.press_button(sector.portfolio_tab_xpath)
-        time.sleep(10)
+        chrome_driver.wait.until(
+            EC.visibility_of_element_located((By.XPATH, sector.portfolio_csv_xpath))
+        )
         chrome_driver.press_button(sector.portfolio_csv_xpath)
         while (
             not sector.portfolio_holdings_file_path.exists()
