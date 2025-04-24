@@ -9,6 +9,7 @@ from typing import Dict
 import sqlalchemy
 
 
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -103,9 +104,14 @@ if market_day:
         # ):  # Wait until file is downloaded.
         #     time.sleep(0.1)
         chrome_driver.press_button(sector.portfolio_tab_xpath)
-        chrome_driver.wait.until(
-            EC.visibility_of_element_located((By.XPATH, sector.portfolio_csv_xpath))
-        )
+        try:
+            chrome_driver.wait.until(
+                EC.visibility_of_element_located((By.XPATH, sector.portfolio_csv_xpath))
+            )
+        except TimeoutException as e:
+            with open("timeout_debug.html", "w", encoding="utf-8") as f:
+                f.write(chrome_driver.driver.page_source)
+            raise e
         chrome_driver.press_button(sector.portfolio_csv_xpath)
         while (
             not sector.portfolio_holdings_file_path.exists()
