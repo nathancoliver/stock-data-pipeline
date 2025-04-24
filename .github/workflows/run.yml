@@ -1,87 +1,37 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+name: Selenium Test
 
-name: Python package
-
-on: 
-  push
-
-  # pull_request:
-  #   branches: [ "main" ]
-  # schedule:
-  #   - cron: "0 1 * * 1-5"
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  build:
-
+  run-selenium:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11"]
-
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: mydatabase
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.11"
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Install poetry
-      uses: snok/install-poetry@v1
-    - name: Install dependencies with poetry
-      run: |
-        poetry install
-    - uses: browser-actions/setup-chrome@v1
-      id: setup-chrome
-      with:
-        chrome-version: 135
-        install-chromedriver: true
-        install-dependencies: true
-    - name: Run main.py
-      run: |
-        poetry run python main.py
-      env:
-        CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+        pip install selenium
+
+    - name: Set up Chrome
+      uses: browser-actions/setup-chrome@v1
+
+    - name: Run script
+      run: python main.py
+
     - name: Upload debug HTML if available
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: timeout-debug
         path: timeout_debug.html
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      if: false # Remove if: false statement once test section has been developed
-      run: |
-        pytest
