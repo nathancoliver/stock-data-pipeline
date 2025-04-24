@@ -102,6 +102,7 @@ if market_day:
         # ):  # Wait until file is downloaded.
         #     time.sleep(0.1)
         chrome_driver.press_button(sector.portfolio_tab_xpath)
+        time.sleep(10)
         chrome_driver.press_button(sector.portfolio_csv_xpath)
         while (
             not sector.portfolio_holdings_file_path.exists()
