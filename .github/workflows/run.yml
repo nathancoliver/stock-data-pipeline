@@ -2,7 +2,8 @@ name: Selenium Test
 
 on:
   push:
-    branches: [main]
+    branches:
+      - '*'
   workflow_dispatch:
 
 jobs:
