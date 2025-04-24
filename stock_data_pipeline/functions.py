@@ -4,6 +4,7 @@
 
 import datetime
 import re
+from shutil import rmtree
 from typing import Dict
 
 
@@ -89,6 +90,12 @@ def initialize_table(
     dtypes_string = convert_sql_data_type_into_string(data_types)
     query = f"CREATE TABLE IF NOT EXISTS {table_name} ({dtypes_string})"
     postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+
+
+def make_directory(directory_path):
+    if directory_path.exists():
+        rmtree(directory_path)
+    directory_path.mkdir(exist_ok=True)
 
 
 def make_ticker_sql_compatible(name: str) -> str:

@@ -19,6 +19,7 @@ from stock_data_pipeline.functions import (
     get_todays_date,
     get_market_day,
     initialize_table,
+    make_directory,
     make_ticker_sql_compatible,
     set_table_primary_key,
 )
@@ -58,6 +59,7 @@ stock_history_dtypes = {
     "volume": sqlalchemy.types.BigInteger,
 }
 stock_weight_directory = Path("stock_weights")
+make_directory(stock_weight_directory)
 config_directory = "config"
 sectors_file_name = "spdr_sectors.txt"
 sectors_file_path = Path(config_directory, sectors_file_name)

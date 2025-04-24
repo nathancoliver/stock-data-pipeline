@@ -9,6 +9,7 @@ from .functions import (
     get_market_day,
     get_todays_date,
     initialize_table,
+    make_directory,
     make_ticker_sql_compatible,
     make_ticker_yfinance_compatible,
     set_table_primary_key,
