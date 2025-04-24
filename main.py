@@ -86,6 +86,7 @@ if market_day:
     for sector in sectors.sectors:
 
         chrome_driver.load_url(sector.url)
+        time.sleep(20)
         # chrome_driver.save_screenshot("screenshots/debug1.png")
         shares_outstanding = sectors.convert_shares_outstanding(
             chrome_driver.driver.find_element(
