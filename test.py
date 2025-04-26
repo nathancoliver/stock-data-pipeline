@@ -40,7 +40,7 @@ options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-extensions")
 
 chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "chromedriver")
-service = Service(chromedriver_path)
+service = Service(executable_path=chromedriver_path)
 driver = webdriver.Chrome(service=service, options=options)
 wait = WebDriverWait(driver, 10)
 
