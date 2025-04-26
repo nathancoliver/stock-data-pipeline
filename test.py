@@ -46,7 +46,7 @@ wait = WebDriverWait(driver, 10)
 
 try:
     driver.get(URL)
-    time.sleep(2)
+    time.sleep(100)
     press_button(driver, wait, TAB_XPATH)
     press_button(driver, wait, CSV_XPATH)
     print("Button clicked. Waiting for download...")
