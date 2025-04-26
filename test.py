@@ -37,6 +37,7 @@ options.add_experimental_option("prefs", prefs)
 options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--disable-extensions")
 
 chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "chromedriver")
 service = Service(chromedriver_path)
@@ -46,7 +47,7 @@ wait = WebDriverWait(driver, 10)
 
 try:
     driver.get(URL)
-    time.sleep(100)
+    time.sleep(5)
     press_button(driver, wait, TAB_XPATH)
     press_button(driver, wait, CSV_XPATH)
     print("Button clicked. Waiting for download...")
