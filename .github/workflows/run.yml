@@ -11,13 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
       with:
-        python-version: "3.11"
+        python-version: ${{ matrix.python-version }}
 
     - name: Install poetry
       uses: snok/install-poetry@v1
@@ -25,8 +23,13 @@ jobs:
       run: |
         poetry install
 
-    - name: Set up Chrome
+    - name: Install Chrome
       uses: browser-actions/setup-chrome@v1
+      id: setup-chrome
+      with:
+        chrome-version: 135
+        install-chromedriver: true
+        install-dependencies: true
 
     - name: Run script
       run: poetry run python test.py
