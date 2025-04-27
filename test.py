@@ -45,6 +45,13 @@ options.add_argument("--start-maximized")
 chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "chromedriver")
 service = Service(executable_path=chromedriver_path)
 driver = webdriver.Chrome(service=service, options=options)
+driver.execute_cdp_cmd(
+    "Page.setDownloadBehavior",
+    {
+        "behavior": "allow",
+        "downloadPath": download_file_directory_absolute_path,
+    },
+)
 wait = WebDriverWait(driver, 10)
 
 
