@@ -59,6 +59,8 @@ try:
 
     # Wait for download to complete
     time.sleep(5)
+    with open("timeout_debug.html", "w", encoding="utf-8") as f:
+        f.write(driver.page_source)
 
 except TimeoutException:
     print("Timeout while trying to find or click the button.")
