@@ -26,7 +26,7 @@ CSV_XPATH = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibli
 
 # CSV_XPATH = """//*[@id="__BVID__118"]/div/div[1]/div[2]/button[1]"""
 DOWNLOAD_DIR = Path("stock_weights")
-download_file_directory_absolute_path = f"{os.getcwd()}\\{DOWNLOAD_DIR}"
+download_file_directory_absolute_path = f"{os.getcwd()}/{DOWNLOAD_DIR}"
 print(download_file_directory_absolute_path)
 
 if DOWNLOAD_DIR.exists():
