@@ -33,14 +33,14 @@ if DOWNLOAD_DIR.exists():
 DOWNLOAD_DIR.mkdir(exist_ok=True)
 
 options = webdriver.ChromeOptions()
-prefs = {"download.default_directory": download_file_directory_absolute_path}
-options.add_experimental_option("prefs", prefs)
+
 options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-extensions")
 options.add_argument("--start-maximized")
-
+prefs = {"download.default_directory": download_file_directory_absolute_path}
+options.add_experimental_option("prefs", prefs)
 
 chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "chromedriver")
 service = Service(executable_path=chromedriver_path)
