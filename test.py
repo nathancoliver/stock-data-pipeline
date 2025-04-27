@@ -21,9 +21,10 @@ def press_button(driver, wait, xpath):
 
 
 URL = "https://www.sectorspdrs.com/mainfund/XLB"
-# XPATH = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
 TAB_XPATH = "//a[contains(text(), 'Portfolio Holdings')]"
-CSV_XPATH = """//*[@id="__BVID__118"]/div/div[1]/div[2]/button[1]"""
+CSV_XPATH = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
+
+# CSV_XPATH = """//*[@id="__BVID__118"]/div/div[1]/div[2]/button[1]"""
 DOWNLOAD_DIR = Path("stock_weights")
 download_file_directory_absolute_path = f"{os.getcwd()}\\{DOWNLOAD_DIR}"
 
