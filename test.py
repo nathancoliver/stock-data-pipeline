@@ -38,6 +38,8 @@ options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-extensions")
+options.add_argument("--start-maximized")
+
 
 chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "chromedriver")
 service = Service(executable_path=chromedriver_path)
@@ -48,7 +50,10 @@ wait = WebDriverWait(driver, 10)
 try:
     driver.get(URL)
     time.sleep(5)
+    driver.execute_script("window.scrollTo(0, 700)")
+    time.sleep(2)
     press_button(driver, wait, TAB_XPATH)
+    time.sleep(2)
     press_button(driver, wait, CSV_XPATH)
     print("Button clicked. Waiting for download...")
 
