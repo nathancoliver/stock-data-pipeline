@@ -58,9 +58,21 @@ jobs:
     - name: Install dependencies with poetry
       run: |
         poetry install
+    - name: Install Chrome
+      uses: browser-actions/setup-chrome@v1
+      id: setup-chrome
+      with:
+        chrome-version: 135
+        install-chromedriver: true
+        install-dependencies: true
     - name: Run main.py
       run: |
         poetry run python main.py
+    - name: Upload csv files
+      uses: actions/upload-artifact@v4
+      with:
+        name: stock-weights
+        path: stock_weights/
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names

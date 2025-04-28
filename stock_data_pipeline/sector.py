@@ -17,8 +17,6 @@ from .ticker import Ticker
 
 class Sector:
 
-    download_file_directory_path: Path
-
     def __init__(
         self,
         sector: str,
@@ -35,10 +33,6 @@ class Sector:
         )
         self.shares_outstanding: None | int = None
         self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector_symbol}"
-        self.index_holdings_file_path: Path = Path(
-            self.download_file_directory_path,
-            f"index-holdings-{self.sector_symbol}.csv",
-        )
         self.portfolio_holdings_file_path: Path = Path(
             self.download_file_directory_path,
             f"portfolio-holdings-{self.sector_symbol}.csv",
@@ -48,7 +42,6 @@ class Sector:
         self.shares_outstanding_xpath = (
             "//dt[text()='Shares Outstanding']/following-sibling::dd"
         )
-        self.index_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[1]"
         self.portfolio_tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
         self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
         self.sector_shares_data_types = {"Date": DataTypes.DATE}

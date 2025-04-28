@@ -88,12 +88,10 @@ if market_day:
         )
         sectors.append_shares_outstanding_dict(sector, shares_outstanding)
         sector.shares_outstanding = shares_outstanding
-        chrome_driver.press_button(sector.index_csv_xpath)
-        while (
-            not sector.index_holdings_file_path.exists()
-        ):  # Wait until file is downloaded.
-            time.sleep(0.1)
+        chrome_driver.scroll_window(700)
+        time.sleep(5)
         chrome_driver.press_button(sector.portfolio_tab_xpath)
+        time.sleep(5)
         chrome_driver.press_button(sector.portfolio_csv_xpath)
         while (
             not sector.portfolio_holdings_file_path.exists()

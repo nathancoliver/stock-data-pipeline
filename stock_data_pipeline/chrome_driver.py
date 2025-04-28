@@ -16,17 +16,22 @@ class ChromeDriver:
         self.download_file_directory_str = download_file_directory
         self.download_file_directory_path = Path(download_file_directory)
         self.download_file_directory_absolute_path = (
-            f"{os.getcwd()}\\{download_file_directory}"
+            f"{os.getcwd()}/{download_file_directory}"
         )
 
         # Update ChromeDriver preferences to download files to self.download_file_directory
         options = webdriver.ChromeOptions()
+        options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--start-maximized")
         prefs = {
             "download.default_directory": self.download_file_directory_absolute_path
         }
         options.add_experimental_option("prefs", prefs)
-
-        service = Service(executable_path="chromedriver.exe")
+        chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "chromedriver")
+        service = Service(executable_path=chromedriver_path)
         self.driver = webdriver.Chrome(service=service, options=options)
 
         self.wait = WebDriverWait(self.driver, 10)
@@ -50,3 +55,6 @@ class ChromeDriver:
 
     def quit_driver(self):
         self.driver.quit()
+
+    def scroll_window(self, amount):
+        self.driver.execute_script(f"window.scroll(0, {amount})")
