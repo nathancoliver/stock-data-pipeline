@@ -108,7 +108,7 @@ if market_day:
         )
         todays_date = get_todays_date()
         df_sector_shares = sector.create_sector_shares_dataframe(todays_date)
-        latest_date = get_sql_table_latest_date(
+        latest_date = get_sql_table_latest_date(  # TODO: Need to get dataframe from S3 bucket. If no database, return None.
             sector.sector_shares_table_name, postgresql_connection.engine
         )
 
@@ -126,7 +126,13 @@ if market_day:
                 {ticker_symbol: sqlalchemy.types.BigInteger}
             )  # TODO: Move this to Sector class, specifically init function and add_ticker func.
 
-        if todays_date > latest_date:  # TODO: fix date comparison
+        if latest_date is None:
+            set_table_primary_key(
+                sector.sector_shares_table_name, "date", postgresql_connection
+            )
+        elif (
+            todays_date > latest_date
+        ):  # TODO: If date is None, error. Need to fix, probably with If latest_date is None, elif ...
             df_sector_shares.to_sql(
                 make_ticker_sql_compatible(sector.sector_shares_table_name),
                 con=postgresql_connection.engine,
@@ -134,10 +140,6 @@ if market_day:
                 index=True,
                 index_label="date",
                 dtype=sector_weights_dtypes,
-            )
-        if latest_date is None:
-            set_table_primary_key(
-                sector.sector_shares_table_name, "date", postgresql_connection
             )
 
     sectors.create_shares_outstanding_table()
