@@ -77,18 +77,18 @@ class Sectors:
                     sector.sector_symbol: sqlalchemy.types.BigInteger,
                 }
             )
-        if todays_date > latest_date:
-            pd.DataFrame(shares_outstanding).set_index("date").to_sql(
-                SECTOR_SHARES_OUTSTANDING,
-                con=self.postgresql_connection.engine,
-                if_exists="append",  # TODO: eventually this will need to be replaced with append
-                index=True,
-                index_label="date",
-                dtype=shares_outstanding_dtypes,
-            )
         if latest_date is None:
             set_table_primary_key(
                 SECTOR_SHARES_OUTSTANDING, "date", self.postgresql_connection
+            )
+        elif todays_date > latest_date:
+            pd.DataFrame(shares_outstanding).set_index("date").to_sql(
+                SECTOR_SHARES_OUTSTANDING,
+                con=self.postgresql_connection.engine,
+                if_exists="append",
+                index=True,
+                index_label="date",
+                dtype=shares_outstanding_dtypes,
             )
 
     def convert_shares_outstanding(self, shares_outstanding: str) -> int:
