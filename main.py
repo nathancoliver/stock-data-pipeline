@@ -79,7 +79,7 @@ market_day = get_market_day(get_todays_date())
 
 if market_day:
     for sector in sectors.sectors:
-
+        print(f"Start scraping {sector.sector_symbol} sector info.")
         chrome_driver.load_url(sector.url)
         time.sleep(5)
         shares_outstanding = sectors.convert_shares_outstanding(
@@ -98,8 +98,10 @@ if market_day:
             not sector.portfolio_holdings_file_path.exists()
         ):  # Wait until file is downloaded.
             time.sleep(0.1)
+        print(f"End scraping {sector.sector_symbol} sector info.")
 
     chrome_driver.quit_driver()
+    print("Quit driver.")
 
     for sector in sectors.sectors:
         initialize_table(
@@ -147,7 +149,7 @@ if market_day:
 
     # Create or append stock history table for each ticker.
     for ticker in tickers.tickers.values():
-
+        print(f"Start retrieve {ticker.ticker_symbol} stock history.")
         latest_date = (
             ticker.get_stock_history_latest_date()
         )  # Get latest date of stock history table.
