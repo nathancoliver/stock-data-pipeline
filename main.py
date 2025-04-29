@@ -81,6 +81,7 @@ if market_day:
     for sector in sectors.sectors:
 
         chrome_driver.load_url(sector.url)
+        time.sleep(5)
         shares_outstanding = sectors.convert_shares_outstanding(
             chrome_driver.driver.find_element(
                 By.XPATH, sector.shares_outstanding_xpath
