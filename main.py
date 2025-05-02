@@ -1,5 +1,5 @@
 """Main script to run the stock data pipeline.
-Download stock data from Yahoo Finance, transform data in SQL, and load data into AWS.
+Download stock data from Yahoo Finance, transform data in SQL, and upload data to AWS.
 """
 
 import os
