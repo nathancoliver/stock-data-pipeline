@@ -7,6 +7,7 @@ version = "0.0"
 
 [tool.poetry.dependencies]
 SQLAlchemy = "*" 
+boto3 = "*" 
 greenlet = "3.2.0" 
 pandas = "*" 
 pandas_market_calendars = "*" 
