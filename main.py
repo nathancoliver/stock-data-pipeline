@@ -28,9 +28,13 @@ from stock_data_pipeline.ticker import Ticker
 from stock_data_pipeline.tickers import Tickers
 from stock_data_pipeline.load_yfinance_data import CollectDailyData
 
-AWS_PASSWORD = os.getenv("AWS_RDS_PASSWORD")
-AWS_USERNAME = os.getenv("AWS_RDS_USERNAME")
-S3_STOCK_DATA_PIPELINE_BUCKET_NAME = os.getenv("S3_STOCK_DATA_PIPELINE_BUCKET_NAME")
+AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_USERNAME = os.getenv("AWS_USERNAME")
+STOCK_DATA_PIPELINE_BUCKET_NAME = os.getenv("STOCK_DATA_PIPELINE_BUCKET_NAME")
+STOCK_DATA_PIPELINE_BUCKET_REGION_NAME = os.getenv(
+    "STOCK_DATA_PIPELINE_BUCKET_REGION_NAME"
+)
 
 POSTGRESQL_HOST = os.getenv("POSTGRESQL_HOST", "localhost")
 POSTGRESQL_PORT = os.getenv("POSTGRESQL_PORT", "5432")
