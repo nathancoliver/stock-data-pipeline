@@ -29,21 +29,29 @@ from stock_data_pipeline import (
     set_table_primary_key,
 )
 
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-AWS_USERNAME = os.getenv("AWS_USERNAME")
-STOCK_DATA_PIPELINE_BUCKET_NAME = os.getenv("STOCK_DATA_PIPELINE_BUCKET_NAME")
-STOCK_DATA_PIPELINE_BUCKET_REGION_NAME = os.getenv(
+AWS_ACCESS_KEY = get_environment_variable("AWS_ACCESS_KEY")
+AWS_SECRET_ACCESS_KEY = get_environment_variable("AWS_SECRET_ACCESS_KEY")
+AWS_USERNAME = get_environment_variable("AWS_USERNAME")
+STOCK_DATA_PIPELINE_BUCKET_NAME = get_environment_variable(
+    "STOCK_DATA_PIPELINE_BUCKET_NAME"
+)
+STOCK_DATA_PIPELINE_BUCKET_REGION_NAME = get_environment_variable(
     "STOCK_DATA_PIPELINE_BUCKET_REGION_NAME"
 )
 
-POSTGRESQL_HOST = os.getenv("POSTGRESQL_HOST", "localhost")
-POSTGRESQL_PORT = os.getenv("POSTGRESQL_PORT", "5432")
-POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE = os.getenv(
-    "POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE", "mydatabase"
+POSTGRESQL_HOST = get_environment_variable(
+    "POSTGRESQL_HOST", alternative_name="localhost"
 )
-POSTGRESQL_USER = os.getenv("POSTGRESQL_USER", "postgres")
-POSTGRESQL_PASSWORD = os.getenv("POSTGRESQL_PASSWORD", "postgres")
+POSTGRESQL_PORT = get_environment_variable("POSTGRESQL_PORT", alternative_name="5432")
+POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE = get_environment_variable(
+    "POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE", alternative_name="mydatabase"
+)
+POSTGRESQL_USER = get_environment_variable(
+    "POSTGRESQL_USER", alternative_name="postgres"
+)
+POSTGRESQL_PASSWORD = get_environment_variable(
+    "POSTGRESQL_PASSWORD", alternative_name="postgres"
+)
 
 
 database_parameters: Dict[str, str | int] = {

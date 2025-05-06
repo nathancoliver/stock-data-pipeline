@@ -45,6 +45,13 @@ def convert_sql_data_type_into_string(data_types: Dict[str, DataTypes]) -> str:
     )
 
 
+def get_environment_variable(name: str, alternative_name: str | None = None) -> str:
+    variable = os.getenv(name, alternative_name)
+    if variable is None:
+        raise TypeError(f"Environment variable {name} does not exist.")
+    return variable
+
+
 def get_market_day(date: datetime.datetime) -> bool:
     nyse = mcal.get_calendar("NYSE")
     market_days = nyse.valid_days(start_date=date, end_date=date)
