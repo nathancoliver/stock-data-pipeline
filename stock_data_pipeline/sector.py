@@ -30,6 +30,10 @@ class Sector:
         self.s3_connection = s3_connection
         self.sector_history_table_name = f"{self.sector_symbol}_sector_history"
         self.sector_shares_table_name = f"{self.sector_symbol}_shares"
+        self.sector_history_s3_file_name = f"{self.sector_history_table_name}.csv"
+        self.sector_shares_s3_file_name = f"{self.sector_shares_table_name}.csv"
+        self.sector_history_df: pd.DataFrame = pd.DataFrame()
+        self.sector_shares_df: pd.DataFrame = pd.DataFrame()
         self.sector_calculated_price_column_name = (
             f"{self.sector_symbol}_calculated_price"
         )
@@ -154,3 +158,8 @@ class Sector:
             df_sector_shares, index="date", columns="symbol", values="shares_held"
         )
         return df_sector_shares
+
+    def get_s3_table(self):
+        self.s3_connection.download_file(self.sector_shares_s3_file_name)
+        if Path(self.sector_shares_s3_file_name).exists():
+            self.sector_shares_df = pd.read_csv(self.sector_shares_s3_file_name)

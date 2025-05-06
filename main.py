@@ -130,17 +130,23 @@ if market_day:
     print("Quit driver.")
 
     for sector in sectors.sectors:
+
+        sector.sector_shares_df = sector.get_s3_table()
         initialize_table(
             sector.sector_shares_table_name,
             sector.sector_shares_data_types,
             postgresql_connection=sector.postgresql_connection,
+            data_frame=sector.sector_shares_df,
         )
         todays_date = get_todays_date()
         df_sector_shares = sector.create_sector_shares_dataframe(todays_date)
-        latest_date = get_sql_table_latest_date(  # TODO: Need to get dataframe from S3 bucket. If no database, return None.
-            sector.sector_shares_table_name, postgresql_connection.engine
+        # latest_date = get_sql_table_latest_date(  # TODO: Need to get dataframe from S3 bucket. If no database, return None.
+        #     sector.sector_shares_table_name, postgresql_connection.engine
+        # )
+        latest_date = get_s3_table_latest_date(
+            s3_connection=sector.s3_connection,
+            file_name=sector.sector_shares_s3_file_name,
         )
-
         tickers_in_sector = set(df_sector_shares.columns)
         sector_weights_dtypes = {"date": sqlalchemy.Date}
         for (
