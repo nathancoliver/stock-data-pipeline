@@ -96,9 +96,13 @@ if market_day:
         sector.shares_outstanding = shares_outstanding
         chrome_driver.scroll_window(700)
         time.sleep(5)
-        chrome_driver.press_button(sector.portfolio_tab_xpath)
+        chrome_driver.press_button(
+            cell_type=By.XPATH, path=sector.portfolio_tab_path, element_index=1
+        )
         time.sleep(5)
-        chrome_driver.press_button(sector.portfolio_csv_xpath)
+        chrome_driver.press_button(
+            cell_type=By.XPATH, path=sector.portfolio_csv_path, element_index=2
+        )
         while (
             not sector.portfolio_holdings_file_path.exists()
         ):  # Wait until file is downloaded.

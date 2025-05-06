@@ -45,9 +45,11 @@ class ChromeDriver:
         self.driver.get(url)
         time.sleep(2)
 
-    def press_button(self, xpath):
+    def press_button(self, cell_type: str, path: str, element_index: int):
+        elements = self.driver.find_elements(cell_type, path)
+        target_button = elements[element_index]
         button = self.wait.until(
-            EC.element_to_be_clickable((By.XPATH, xpath))
+            EC.element_to_be_clickable(target_button)
         )  # Wait until button is clickable.
         ActionChains(self.driver).move_to_element(
             button
