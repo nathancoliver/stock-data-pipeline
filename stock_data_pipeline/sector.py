@@ -44,8 +44,10 @@ class Sector:
         self.shares_outstanding_xpath = (
             "//dt[text()='Shares Outstanding']/following-sibling::dd"
         )
-        self.portfolio_tab_xpath = "//a[contains(text(), 'Portfolio Holdings')]"
-        self.portfolio_csv_xpath = "(//span[contains(text(), 'Download a Spreadsheet')]/following-sibling::button[contains(text(), 'CSV File')])[2]"
+        self.portfolio_tab_path = "//button[text()='Portfolio Holdings']"
+        self.portfolio_csv_path = (
+            "//button[contains(@class, 'btn-primary') and text()='CSV File']"
+        )
         self.sector_shares_data_types = {"Date": DataTypes.DATE}
 
     def add_ticker(self, ticker_object: Ticker):
