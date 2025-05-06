@@ -72,11 +72,20 @@ chrome_driver = ChromeDriver(stock_weight_directory)
 chrome_driver.create_directory()
 
 postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
+s3_connection = S3Connection(
+    stock_weight_directory=stock_weight_directory,
+    AWS_ACCESS_KEY=AWS_ACCESS_KEY,
+    AWS_SECRET_ACCESS_KEY=AWS_SECRET_ACCESS_KEY,
+    STOCK_DATA_PIPELINE_BUCKET_NAME=STOCK_DATA_PIPELINE_BUCKET_NAME,
+    STOCK_DATA_PIPELINE_BUCKET_REGION_NAME=STOCK_DATA_PIPELINE_BUCKET_REGION_NAME,
+    AWS_USERNAME=AWS_USERNAME,
+)
 
 sectors = Sectors(
     sectors_file_path,
     chrome_driver=chrome_driver,
     postgresql_connection=postgresql_connection,
+    s3_connection=s3_connection,
 )
 tickers = Tickers()
 

@@ -11,7 +11,7 @@ from .definitions import SECTOR_SHARES_OUTSTANDING, DataTypes, SQLOperation
 from .functions import (
     make_ticker_sql_compatible,
 )
-from .postgresql_connection import PostgreSQLConnection
+from stock_data_pipeline import PostgreSQLConnection, S3Connection
 from .ticker import Ticker
 
 
@@ -22,10 +22,12 @@ class Sector:
         sector: str,
         chrome_driver: ChromeDriver,
         postgresql_connection: PostgreSQLConnection,
+        s3_connection: S3Connection,
     ):
         self.download_file_directory_path = chrome_driver.download_file_directory_path
         self.sector_symbol = make_ticker_sql_compatible(sector)
         self.postgresql_connection = postgresql_connection
+        self.s3_connection = s3_connection
         self.sector_history_table_name = f"{self.sector_symbol}_sector_history"
         self.sector_shares_table_name = f"{self.sector_symbol}_shares"
         self.sector_calculated_price_column_name = (

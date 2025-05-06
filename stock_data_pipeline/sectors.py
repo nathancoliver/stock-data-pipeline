@@ -13,7 +13,7 @@ from .functions import (
     initialize_table,
     set_table_primary_key,
 )
-from .postgresql_connection import PostgreSQLConnection
+from stock_data_pipeline import PostgreSQLConnection, S3Connection
 from .sector import Sector
 
 
@@ -24,6 +24,7 @@ class Sectors:
         file_path: Path,
         chrome_driver: ChromeDriver,
         postgresql_connection: PostgreSQLConnection,
+        s3_connection: S3Connection,
     ):
         self.sectors: List[Sector] = []
         self.shares_outstanding: Dict[str, List[str | int]] = {
@@ -42,6 +43,7 @@ class Sectors:
                         sector_ticker.rstrip("\n"),
                         chrome_driver=chrome_driver,
                         postgresql_connection=self.postgresql_connection,
+                        s3_connection=s3_connection,
                     )
                 )
                 self.sector_shares_outstanding_dtypes.update(

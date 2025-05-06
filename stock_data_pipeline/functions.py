@@ -14,6 +14,7 @@ import sqlalchemy
 
 from .definitions import DataTypes, SQLOperation
 from .postgresql_connection import PostgreSQLConnection
+from .s3_connection import S3Connection
 
 
 def check_table_append_compatibility(
