@@ -97,7 +97,10 @@ sectors = Sectors(
 )
 tickers = Tickers()
 
-market_day = get_market_day(get_todays_date())
+todays_date = (
+    get_todays_date()
+)  # TODO: need to update function that retrieves todays date
+market_day = get_market_day(todays_date)
 
 if market_day:
     for sector in sectors.sectors:
@@ -157,9 +160,9 @@ if market_day:
             ticker_object = Ticker(ticker_symbol, postgresql_connection)
             sector.add_ticker(ticker_object)
             tickers.add_ticker(ticker_symbol, ticker_object)
-            sector_weights_dtypes.update(
-                {ticker_symbol: sqlalchemy.types.BigInteger}
-            )  # TODO: Move this to Sector class, specifically init function and add_ticker func.
+        df_sector_shares = sector.create_sector_shares_dataframe(
+            todays_date
+        )  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
 
         if latest_date is None:
             set_table_primary_key(
