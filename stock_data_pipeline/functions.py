@@ -69,9 +69,11 @@ def get_market_day(date: datetime.datetime) -> bool:
     return False
 
 
-def get_latest_date(df: pd.DataFrame) -> pd.DatetimeIndex | None:
+def get_latest_date(df: pd.DataFrame, date_format: str) -> pd.DatetimeIndex | None:
     latest_date = (
-        pd.to_datetime(df.set_index("date")).sort_index(ascending=False).index[0]
+        pd.to_datetime(df["date"], format=date_format)
+        .sort_values(ascending=False)
+        .reset_index(drop=True)[0]
     ).to_pydatetime()  # TODO: figure out how to type hint this date
     return latest_date
 
@@ -86,7 +88,7 @@ def get_s3_table_latest_date(s3_connection: S3Connection, file_name: str):
     s3_connection.download_file(file_name)
     try:
         df = pd.read_csv(file_name)
-        return get_latest_date(df)
+        return get_latest_date(df, date_format="%Y-%m-%d")
     except (FileNotFoundError, pd.errors.EmptyDataError):
         return None
 
@@ -97,7 +99,9 @@ def get_sql_table_latest_date(
 
     try:
         df_shares_outstanding_shares_exists = pd.read_sql(table_name, engine)
-        return get_latest_date(df_shares_outstanding_shares_exists)
+        return get_latest_date(
+            df_shares_outstanding_shares_exists, date_format="%Y-%m-%d"
+        )
     except (FileNotFoundError, pd.errors.EmptyDataError):
         return None
 
@@ -121,11 +125,18 @@ def initialize_table(
     postgresql_connection: PostgreSQLConnection,
     data_frame: pd.DataFrame | None = None,
 ) -> None:
-    dtypes_string = convert_sql_data_type_into_string(data_types)
-    query = f"CREATE TABLE IF NOT EXISTS {table_name} ({dtypes_string})"
-    postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+    # dtypes_string = convert_sql_data_type_into_string(data_types)
+    # query = f"CREATE TABLE IF NOT EXISTS {table_name} ({dtypes_string})"
+    # postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
     if data_frame is not None:
-        data_frame.to_sql(table_name, postgresql_connection, if_exists="append")
+        data_frame.to_sql(
+            table_name,
+            con=postgresql_connection,
+            if_exists="append",
+            index=True,
+            index_label="date",
+            dtype=data_types,
+        )
 
 
 def make_ticker_sql_compatible(name: str) -> str:

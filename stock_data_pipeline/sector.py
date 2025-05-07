@@ -57,7 +57,7 @@ class Sector:
         self.portfolio_csv_path = (
             "//button[contains(@class, 'btn-primary') and text()='CSV File']"
         )
-        self.sector_shares_data_types = {"Date": DataTypes.DATE}
+        self.sector_shares_data_types = {"date": DataTypes.DATE}
 
     def add_ticker(self, ticker_object: Ticker):
         if ticker_object.ticker_symbol not in self.tickers:

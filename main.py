@@ -16,6 +16,7 @@ from stock_data_pipeline import (
     PostgreSQLConnection,
     S3Connection,
     Sectors,
+    SQLOperation,
     Ticker,
     Tickers,
     CollectDailyData,
@@ -131,27 +132,16 @@ if market_day:
 
     chrome_driver.quit_driver()
     print("Quit driver.")
-
     for sector in sectors.sectors:
-
-        sector.sector_shares_df = sector.get_s3_table()
-        initialize_table(
-            sector.sector_shares_table_name,
-            sector.sector_shares_data_types,
-            postgresql_connection=sector.postgresql_connection,
-            data_frame=sector.sector_shares_df,
+        postgresql_connection.execute_query(
+            f"DROP TABLE IF EXISTS {sector.sector_shares_table_name}",
+            operation=SQLOperation.COMMIT,
         )
-        todays_date = get_todays_date()
-        df_sector_shares = sector.create_sector_shares_dataframe(todays_date)
-        # latest_date = get_sql_table_latest_date(  # TODO: Need to get dataframe from S3 bucket. If no database, return None.
-        #     sector.sector_shares_table_name, postgresql_connection.engine
-        # )
-        latest_date = get_s3_table_latest_date(
-            s3_connection=sector.s3_connection,
-            file_name=sector.sector_shares_s3_file_name,
-        )
-        tickers_in_sector = set(df_sector_shares.columns)
-        sector_weights_dtypes = {"date": sqlalchemy.Date}
+    for sector in sectors.sectors:
+        # TODO: Download S3 sector shares csv, create SQL/Pandas table, append table with latest data, and upload appended table to S3.
+        sector.get_s3_table()  # Download S3 table and create Pandas table TODO: Need to return None if CSV table in S3 does not exist.
+        tickers_in_sector = set(sector.sector_shares_df.columns)
+        # sector_weights_dtypes = {"date": sqlalchemy.Date}
         for (
             ticker_symbol
         ) in (
@@ -160,12 +150,25 @@ if market_day:
             ticker_object = Ticker(ticker_symbol, postgresql_connection)
             sector.add_ticker(ticker_object)
             tickers.add_ticker(ticker_symbol, ticker_object)
+            # sector_weights_dtypes.update(
+            #     {ticker_symbol: sqlalchemy.types.BigInteger}
+            # )  # TODO: Move this to Sector class, specifically init function and add_ticker func.
+        initialize_table(  # Create SQL table. This does not append latest sector shares data, only creates SQL table.
+            sector.sector_shares_table_name,
+            sector.sector_shares_data_types,
+            postgresql_connection=sector.postgresql_connection,
+            data_frame=sector.sector_shares_df,
+        )
         df_sector_shares = sector.create_sector_shares_dataframe(
             todays_date
         )  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
+        latest_date = get_s3_table_latest_date(
+            s3_connection=sector.s3_connection,
+            file_name=sector.sector_shares_s3_file_name,
+        )
 
         if latest_date is None:
-            set_table_primary_key(
+            set_table_primary_key(  # TODO: need to test when there are not sector shares csv files in S3 bucket
                 sector.sector_shares_table_name, "date", postgresql_connection
             )
         elif (
@@ -174,7 +177,7 @@ if market_day:
             df_sector_shares.to_sql(
                 make_ticker_sql_compatible(sector.sector_shares_table_name),
                 con=postgresql_connection.engine,
-                if_exists="append",
+                if_exists="append",  # TODO: need to figure out why append does not currently work. Should be able to take one row sector shares df and append to SQL table.
                 index=True,
                 index_label="date",
                 dtype=sector_weights_dtypes,
