@@ -23,15 +23,20 @@ class Sector:
         chrome_driver: ChromeDriver,
         postgresql_connection: PostgreSQLConnection,
         s3_connection: S3Connection,
+        sector_shares_directory: Path,
     ):
         self.download_file_directory_path = chrome_driver.download_file_directory_path
         self.sector_symbol = make_ticker_sql_compatible(sector)
         self.postgresql_connection = postgresql_connection
         self.s3_connection = s3_connection
+        self.sector_shares_directory = sector_shares_directory
         self.sector_history_table_name = f"{self.sector_symbol}_sector_history"
         self.sector_shares_table_name = f"{self.sector_symbol}_shares"
         self.sector_history_s3_file_name = f"{self.sector_history_table_name}.csv"
         self.sector_shares_s3_file_name = f"{self.sector_shares_table_name}.csv"
+        self.sector_shares_download_file_path = Path(
+            self.sector_shares_directory, self.sector_shares_s3_file_name
+        )
         self.sector_history_df: pd.DataFrame = pd.DataFrame()
         self.sector_shares_df: pd.DataFrame = pd.DataFrame()
         self.sector_calculated_price_column_name = (
@@ -160,6 +165,15 @@ class Sector:
         return df_sector_shares
 
     def get_s3_table(self):
-        self.s3_connection.download_file(self.sector_shares_s3_file_name)
-        if Path(self.sector_shares_s3_file_name).exists():
-            self.sector_shares_df = pd.read_csv(self.sector_shares_s3_file_name)
+        self.s3_connection.download_file(
+            self.sector_shares_s3_file_name,
+            download_file_path=self.sector_shares_download_file_path,
+        )
+        if self.sector_shares_download_file_path.exists():
+            self.sector_shares_df = pd.read_csv(self.sector_shares_download_file_path)
+            print()
+            # self.sector_shares_df.index = pd.to_datetime(
+            #     self.sector_shares_df["date"]
+            # ).dt.strftime("%Y-%m-%d")
+            # self.sector_shares_df.index.name = None
+            # self.sector_shares_df.drop(labels="date", inplace=True, axis=1)

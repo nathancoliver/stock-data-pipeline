@@ -42,9 +42,9 @@ class S3Connection:
             file_name,
         )
 
-    def download_file(self, file_name: str):
+    def download_file(self, file_name: str, download_file_path: Path):
         self.s3_connection.download_file(
             self.STOCK_DATA_PIPELINE_BUCKET_NAME,
             file_name,
-            Path(self.current_working_directory, file_name),
+            Path(self.current_working_directory, download_file_path),
         )

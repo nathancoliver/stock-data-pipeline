@@ -5,6 +5,7 @@ from .definitions import DataTypes, SQLOperation
 from .functions import (
     check_table_append_compatibility,
     convert_sql_data_type_into_string,
+    create_directory,
     get_environment_variable,
     get_market_day,
     get_s3_table_latest_date,

@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import List, Dict
-from shutil import rmtree
 import pandas as pd  # type: ignore
 import sqlalchemy
 
@@ -13,7 +12,7 @@ from .functions import (
     initialize_table,
     set_table_primary_key,
 )
-from stock_data_pipeline import PostgreSQLConnection, S3Connection
+from stock_data_pipeline import PostgreSQLConnection, S3Connection, create_directory
 from .sector import Sector
 
 
@@ -35,6 +34,8 @@ class Sectors:
             "date": DataTypes.DATE
         }
         self.postgresql_connection = postgresql_connection
+        self.sector_shares_directory = Path("sector_shares")
+        create_directory(self.sector_shares_directory)
 
         with open(file_path, "r", encoding="utf-8") as file:
             for sector_ticker in file:
@@ -44,6 +45,7 @@ class Sectors:
                         chrome_driver=chrome_driver,
                         postgresql_connection=self.postgresql_connection,
                         s3_connection=s3_connection,
+                        sector_shares_directory=self.sector_shares_directory,
                     )
                 )
                 self.sector_shares_outstanding_dtypes.update(

@@ -5,6 +5,7 @@
 import datetime
 import os
 from pathlib import Path
+from shutil import rmtree
 import re
 from typing import Dict
 
@@ -45,6 +46,12 @@ def convert_sql_data_type_into_string(data_types: Dict[str, DataTypes]) -> str:
             for column_name, data_type in data_types.items()
         ]
     )
+
+
+def create_directory(directory_path: Path):
+    if directory_path.exists():
+        rmtree(directory_path)
+    directory_path.mkdir(exist_ok=True)
 
 
 def get_environment_variable(name: str, alternative_name: str | None = None) -> str:
