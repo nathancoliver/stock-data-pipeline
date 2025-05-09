@@ -45,14 +45,12 @@ POSTGRESQL_HOST = get_environment_variable(
 )
 POSTGRESQL_PORT = get_environment_variable("POSTGRESQL_PORT", alternative_name="5432")
 POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE = get_environment_variable(
-    "POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE", alternative_name="mydatabase"
+    "POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE"
 )
 POSTGRESQL_USER = get_environment_variable(
     "POSTGRESQL_USER", alternative_name="postgres"
 )
-POSTGRESQL_PASSWORD = get_environment_variable(
-    "POSTGRESQL_PASSWORD", alternative_name="postgres"
-)
+POSTGRESQL_PASSWORD = get_environment_variable("POSTGRESQL_PASSWORD")
 
 
 database_parameters: Dict[str, str | int] = {
