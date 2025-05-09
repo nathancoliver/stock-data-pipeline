@@ -96,9 +96,8 @@ sectors = Sectors(
 )
 tickers = Tickers()
 
-todays_date = (
-    get_todays_date()
-)  # TODO: need to update function that retrieves todays date
+# TODO: need to update function that retrieves todays date
+todays_date = get_todays_date()
 market_day = get_market_day(todays_date)
 
 if market_day:
