@@ -9,6 +9,7 @@ import pandas as pd  # type:ignore
 from .chrome_driver import ChromeDriver
 from .definitions import SECTOR_SHARES_OUTSTANDING, DataTypes, SQLOperation
 from .functions import (
+    get_latest_date,
     make_ticker_sql_compatible,
 )
 from stock_data_pipeline import PostgreSQLConnection, S3Connection
@@ -171,9 +172,11 @@ class Sector:
         )
         if self.sector_shares_download_file_path.exists():
             self.sector_shares_df = pd.read_csv(self.sector_shares_download_file_path)
-            print()
-            # self.sector_shares_df.index = pd.to_datetime(
-            #     self.sector_shares_df["date"]
-            # ).dt.strftime("%Y-%m-%d")
-            # self.sector_shares_df.index.name = None
-            # self.sector_shares_df.drop(labels="date", inplace=True, axis=1)
+            self.sector_shares_df.index = pd.to_datetime(
+                self.sector_shares_df["date"]
+            ).dt.strftime("%Y-%m-%d")
+            self.sector_shares_df.index.name = None
+            self.sector_shares_df.drop(labels="date", inplace=True, axis=1)
+
+    def get_s3_table_latest_date(self) -> pd.DatetimeIndex | None:
+        return get_latest_date(self.sector_shares_df, date_format="%Y-%m-%d")

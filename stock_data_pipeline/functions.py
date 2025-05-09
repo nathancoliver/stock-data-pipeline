@@ -15,7 +15,7 @@ import pandas_market_calendars as mcal
 import sqlalchemy
 
 
-from .definitions import DataTypes, SQLOperation
+from .definitions import SQLOperation
 from .postgresql_connection import PostgreSQLConnection
 from .s3_connection import S3Connection
 
@@ -39,12 +39,9 @@ def check_table_append_compatibility(
     return stock_history
 
 
-def convert_sql_data_type_into_string(data_types: Dict[str, DataTypes]) -> str:
+def convert_sql_data_type_into_string(data_types: Dict[str, str]) -> str:
     return ", ".join(
-        [
-            f"{column_name} {data_type.value}"
-            for column_name, data_type in data_types.items()
-        ]
+        [f"{column_name} {data_type}" for column_name, data_type in data_types.items()]
     )
 
 
@@ -71,26 +68,9 @@ def get_market_day(date: datetime.datetime) -> bool:
 
 def get_latest_date(df: pd.DataFrame, date_format: str) -> pd.DatetimeIndex | None:
     latest_date = (
-        pd.to_datetime(df["date"], format=date_format)
-        .sort_values(ascending=False)
-        .reset_index(drop=True)[0]
+        pd.to_datetime(df.index, format=date_format).sort_values(ascending=False)[0]
     ).to_pydatetime()  # TODO: figure out how to type hint this date
     return latest_date
-
-
-def get_s3_table(s3_connection: S3Connection, file_name: str):
-    s3_connection.download_file(file_name)
-    if Path(file_name).exists():
-        df = pd.read_csv(file_name)
-
-
-def get_s3_table_latest_date(s3_connection: S3Connection, file_name: str):
-    s3_connection.download_file(file_name)
-    try:
-        df = pd.read_csv(file_name)
-        return get_latest_date(df, date_format="%Y-%m-%d")
-    except (FileNotFoundError, pd.errors.EmptyDataError):
-        return None
 
 
 def get_sql_table_latest_date(
@@ -121,21 +101,25 @@ def get_todays_date() -> datetime.datetime:
 
 def initialize_table(
     table_name: str,
-    data_types: Dict[str, DataTypes],
+    data_types: Dict[str, sqlalchemy],
+    data_types_strings: Dict[str, str],
     postgresql_connection: PostgreSQLConnection,
     data_frame: pd.DataFrame | None = None,
 ) -> None:
-    # dtypes_string = convert_sql_data_type_into_string(data_types)
-    # query = f"CREATE TABLE IF NOT EXISTS {table_name} ({dtypes_string})"
-    # postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+    dtypes_string = convert_sql_data_type_into_string(data_types_strings)
+    query = f"CREATE TABLE IF NOT EXISTS {table_name} ({dtypes_string})"
+    postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
     if data_frame is not None:
         data_frame.to_sql(
             table_name,
-            con=postgresql_connection,
+            con=postgresql_connection.engine,
             if_exists="append",
             index=True,
             index_label="date",
             dtype=data_types,
+        )
+        set_table_primary_key(  # TODO: need to test when there are not sector shares csv files in S3 bucket
+            table_name, "date", postgresql_connection
         )
 
 
