@@ -7,6 +7,7 @@ import sqlalchemy
 from .chrome_driver import ChromeDriver
 from .definitions import SECTOR_SHARES_OUTSTANDING, DataTypes
 from .functions import (
+    get_s3_table,
     get_sql_table_latest_date,
     get_todays_date,
     initialize_table,
@@ -30,26 +31,38 @@ class Sectors:
             "sector": [],
             "shares_outstanding": [],
         }
-        self.sector_shares_outstanding_dtypes: Dict[str, DataTypes] = {
+        self.sector_shares_outstanding_dtypes: Dict[str, sqlalchemy.types] = {
+            "date": sqlalchemy.types.Date
+        }
+        self.sector_shares_outstanding_dtypes_strings: Dict[str, str] = {
             "date": DataTypes.DATE
         }
-        self.postgresql_connection = postgresql_connection
         self.sector_shares_directory = Path("sector_shares")
+        self.sector_shares_outstanding_s3_file_name = f"{SECTOR_SHARES_OUTSTANDING}.csv"
+        self.sector_shares_outstanding_s3_download_path = Path(
+            self.sector_shares_directory,
+            self.sector_shares_outstanding_s3_file_name,
+        )
+        self.postgresql_connection = postgresql_connection
+        self.s3_connection = s3_connection
+
         create_directory(self.sector_shares_directory)
 
         with open(file_path, "r", encoding="utf-8") as file:
             for sector_ticker in file:
-                self.sectors.append(
-                    Sector(
-                        sector_ticker.rstrip("\n"),
-                        chrome_driver=chrome_driver,
-                        postgresql_connection=self.postgresql_connection,
-                        s3_connection=s3_connection,
-                        sector_shares_directory=self.sector_shares_directory,
-                    )
+                sector = Sector(
+                    sector_ticker.rstrip("\n"),
+                    chrome_driver=chrome_driver,
+                    postgresql_connection=self.postgresql_connection,
+                    s3_connection=s3_connection,
+                    sector_shares_directory=self.sector_shares_directory,
                 )
+                self.sectors.append(sector)
                 self.sector_shares_outstanding_dtypes.update(
-                    {sector_ticker: DataTypes.BIGINT}
+                    {sector.sector_symbol: sqlalchemy.types.BigInteger}
+                )
+                self.sector_shares_outstanding_dtypes_strings.update(
+                    {sector.sector_symbol: DataTypes.BIGINT}
                 )
 
     def append_shares_outstanding_dict(self, sector: Sector, shares_outstanding: int):
@@ -57,10 +70,17 @@ class Sectors:
         self.shares_outstanding["shares_outstanding"].append(shares_outstanding)
 
     def create_shares_outstanding_table(self):
+        df_shares_outstanding = get_s3_table(
+            self.s3_connection,
+            s3_file_name=self.sector_shares_outstanding_s3_file_name,
+            download_file_path=self.sector_shares_outstanding_s3_download_path,
+        )
         initialize_table(
-            SECTOR_SHARES_OUTSTANDING,
-            self.sector_shares_outstanding_dtypes,
+            table_name=SECTOR_SHARES_OUTSTANDING,
+            data_types=self.sector_shares_outstanding_dtypes,
+            data_types_strings=self.sector_shares_outstanding_dtypes_strings,
             postgresql_connection=self.postgresql_connection,
+            data_frame=df_shares_outstanding,
         )
         # TODO: initilalize sql table (create table if exists ...)
         # TODO: create a row of shares outstanding and add row to existing sql tables
@@ -94,6 +114,10 @@ class Sectors:
                 index_label="date",
                 dtype=shares_outstanding_dtypes,
             )
+        self.s3_connection.upload_sql_table(
+            SECTOR_SHARES_OUTSTANDING,
+            self.postgresql_connection,
+        )
 
     def convert_shares_outstanding(self, shares_outstanding: str) -> int:
         magnitude = shares_outstanding.rstrip(" ")[-1].upper()

@@ -16,6 +16,7 @@ class Ticker:
         self.yfinance_ticker = make_ticker_yfinance_compatible(ticker)
         self.table_name = f"{self.ticker_symbol}_stock_history"
         self.price_column_name = f"{self.ticker_symbol}_price"
+        self.shares_column_name = f"{self.ticker_symbol}_shares"
         self.postgresql_connection = postgresql_connection
         self.stock_history = pd.DataFrame()
 

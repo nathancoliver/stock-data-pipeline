@@ -79,7 +79,7 @@ class Sector:
         calculation_queries = []
         for ticker in self.tickers:
             calculation_queries.append(
-                f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.ticker_symbol}"
+                f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.shares_column_name}"
             )
         calculation_query = f"""{" ( " + " + ".join(calculation_queries) + " ) "} / {SECTOR_SHARES_OUTSTANDING}.{self.sector_symbol}"""
         from_query = f"FROM {SECTOR_SHARES_OUTSTANDING}"
@@ -104,18 +104,20 @@ class Sector:
         first_ticker = self.tickers[0]
         first_ticker_table_name = first_ticker.table_name
         first_ticker_price_column = first_ticker.price_column_name
-        table_name_query = f"CREATE TABLE IF NOT EXISTS {self.sector_history_table_name} as"  # TODO: revert operation to 'IF NOT EXISTS'
+        table_name_query = (
+            f"CREATE TABLE IF NOT EXISTS {self.sector_history_table_name} as"
+        )
         select_query = f" SELECT {first_ticker_table_name}.date as date"
         column_query = (
             f", {first_ticker_table_name}.close as {first_ticker_price_column}"
         )
         from_query = f" FROM {first_ticker_table_name}"
         join_query = ""
-        order_by_query = f" ORDER BY {first_ticker_table_name}.date ASC"
         for ticker in self.tickers[1:]:
             ticker_table_name = ticker.table_name
             column_query += f", {ticker_table_name}.close as {ticker.price_column_name}"
             join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
+        order_by_query = f" ORDER BY {first_ticker_table_name}.date ASC"
         query = (
             table_name_query
             + select_query
@@ -131,6 +133,10 @@ class Sector:
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
         self.calculate_sector_price()
+        self.s3_connection.upload_sql_table(
+            self.sector_history_table_name,
+            postgresql_connection=self.postgresql_connection,
+        )
 
     def create_sector_shares_dataframe(
         self, todays_date: datetime.datetime

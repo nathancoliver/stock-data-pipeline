@@ -73,12 +73,30 @@ def get_latest_date(df: pd.DataFrame, date_format: str) -> pd.DatetimeIndex | No
     return latest_date
 
 
+def get_s3_table(
+    s3_connection: S3Connection, s3_file_name: str, download_file_path: Path
+) -> pd.DataFrame:
+    s3_connection.download_file(
+        s3_file_name,
+        download_file_path,
+    )
+    if download_file_path.exists():
+        df = pd.read_csv(download_file_path)
+        df.index = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+        df.index.name = None
+        df.drop(labels="date", inplace=True, axis=1)
+        return df
+    raise NameError(f"Download path {download_file_path} does not exist.")
+
+
 def get_sql_table_latest_date(
     table_name: str, engine: sqlalchemy.engine.Engine
 ) -> datetime.datetime | None:
 
     try:
-        df_shares_outstanding_shares_exists = pd.read_sql(table_name, engine)
+        df_shares_outstanding_shares_exists = pd.read_sql(
+            table_name, engine, index_col="date"
+        )
         return get_latest_date(
             df_shares_outstanding_shares_exists, date_format="%Y-%m-%d"
         )

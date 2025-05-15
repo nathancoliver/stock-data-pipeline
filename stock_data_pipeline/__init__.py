@@ -8,6 +8,7 @@ from .functions import (
     create_directory,
     get_environment_variable,
     get_market_day,
+    get_s3_table,
     get_sql_table_latest_date,
     get_todays_date,
     initialize_table,

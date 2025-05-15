@@ -1,4 +1,7 @@
+from pathlib import Path
 from typing import Dict
+
+
 import psycopg2  # type: ignore
 from sqlalchemy import create_engine
 
@@ -35,3 +38,10 @@ class PostgreSQLConnection:
     def set_primary_key(self, table_name: str, column: str) -> None:
         query = f"ALTER TABLE {table_name} ADD PRIMARY KEY ({column})"
         self.execute_query(query, SQLOperation.COMMIT)
+
+    def save_sql_table_to_csv(self, table_name: str, file_path: Path) -> None:
+        query = f"COPY {table_name} TO STDOUT WITH (FORMAT CSV, HEADER)"
+        with open(file_path, "w", newline="") as file:
+            self.cursor.copy_expert(query, file=file)
+
+        # self.execute_query(query, operation=SQLOperation.EXECUTE)
