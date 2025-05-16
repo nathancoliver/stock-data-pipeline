@@ -26,7 +26,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: ${{ secrets.POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE }}
+          POSTGRES_DB: ${{ secrets.POSTGRESQL_DB}}
         ports:
           - 5432:5432
         options: >-
@@ -38,7 +38,7 @@ jobs:
     env:
       POSTGRESQL_HOST: localhost
       POSTGRESQL_PORT: 5432
-      POSTGRESQL_DB: ${{ secrets.POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE }}
+      POSTGRESQL_DB: ${{ secrets.POSTGRESQL_DB}}
       POSTGRESQL_USER: postgres
       POSTGRESQL_PASSWORD: postgres
 
@@ -73,7 +73,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_USERNAME: ${{ secrets.AWS_USERNAME }}
         CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
-        POSTGRESQL_DB: ${{ secrets.POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE }}
+        POSTGRESQL_DB: ${{ secrets.POSTGRESQL_DB}}
         STOCK_DATA_PIPELINE_BUCKET_NAME: ${{ secrets.STOCK_DATA_PIPELINE_BUCKET_NAME }}
         STOCK_DATA_PIPELINE_BUCKET_REGION_NAME: ${{ secrets.STOCK_DATA_PIPELINE_BUCKET_REGION_NAME }}
     - name: Upload csv files
