@@ -45,7 +45,7 @@ POSTGRESQL_HOST = get_environment_variable(
     "POSTGRESQL_HOST", alternative_name="localhost"
 )
 POSTGRESQL_PORT = get_environment_variable("POSTGRESQL_PORT", alternative_name="5432")
-POSTGRESQL_DB = get_environment_variable("POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE")
+POSTGRESQL_DB = get_environment_variable("POSTGRESQL_DB")
 POSTGRESQL_USER = get_environment_variable(
     "POSTGRESQL_USER", alternative_name="postgres"
 )
