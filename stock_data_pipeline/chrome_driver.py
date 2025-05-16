@@ -21,7 +21,7 @@ class ChromeDriver:
         self.download_file_directory_absolute_path = (
             f"{os.getcwd()}/{download_file_directory}"
         )
-        # create_directory(Path(self.download_file_directory_absolute_path))
+        create_directory(Path(self.download_file_directory_absolute_path))
 
         # Update ChromeDriver preferences to download files to self.download_file_directory
         options = webdriver.ChromeOptions()

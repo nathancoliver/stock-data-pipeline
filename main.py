@@ -77,7 +77,6 @@ sectors_file_path = Path(config_directory, sectors_file_name)
 
 
 chrome_driver = ChromeDriver(STOCK_WEIGHT_DIRECTORY)
-chrome_driver.create_directory()
 
 postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
 s3_connection = S3Connection(
