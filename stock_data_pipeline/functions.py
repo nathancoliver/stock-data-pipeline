@@ -52,7 +52,7 @@ def create_directory(directory_path: Path):
 
 
 def get_environment_variable(name: str, alternative_name: str | None = None) -> str:
-    variable = os.getenv(name, alternative_name)
+    variable = os.environ.get(name, alternative_name)
     if variable is None:
         raise TypeError(f"Environment variable {name} does not exist.")
     return variable
