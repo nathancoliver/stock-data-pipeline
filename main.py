@@ -45,9 +45,7 @@ POSTGRESQL_HOST = get_environment_variable(
     "POSTGRESQL_HOST", alternative_name="localhost"
 )
 POSTGRESQL_PORT = get_environment_variable("POSTGRESQL_PORT", alternative_name="5432")
-POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE = get_environment_variable(
-    "POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE"
-)
+POSTGRESQL_DB = get_environment_variable("POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE")
 POSTGRESQL_USER = get_environment_variable(
     "POSTGRESQL_USER", alternative_name="postgres"
 )
@@ -57,11 +55,11 @@ POSTGRESQL_PASSWORD = get_environment_variable("POSTGRESQL_PASSWORD")
 database_parameters: Dict[str, str | int] = {
     "host": POSTGRESQL_HOST,
     "port": POSTGRESQL_PORT,
-    "dbname": POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE,
+    "dbname": POSTGRESQL_DB,
     "user": POSTGRESQL_USER,
     "password": POSTGRESQL_PASSWORD,
 }
-engine_parameters = f"postgresql+psycopg2://{POSTGRESQL_USER}:{POSTGRESQL_PASSWORD}@{POSTGRESQL_HOST}:{POSTGRESQL_PORT}/{POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE}"
+engine_parameters = f"postgresql+psycopg2://{POSTGRESQL_USER}:{POSTGRESQL_PASSWORD}@{POSTGRESQL_HOST}:{POSTGRESQL_PORT}/{POSTGRESQL_DB}"
 stock_history_dtypes = {
     "date": sqlalchemy.DATE,
     "open": sqlalchemy.types.Numeric(10, 2),
