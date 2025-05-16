@@ -75,7 +75,7 @@ config_directory = "config"
 sectors_file_name = "spdr_sectors.txt"
 sectors_file_path = Path(config_directory, sectors_file_name)
 
-
+create_directory(DATA_DIRECTORY)
 chrome_driver = ChromeDriver(STOCK_WEIGHT_DIRECTORY)
 
 postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
