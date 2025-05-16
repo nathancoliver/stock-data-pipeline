@@ -36,11 +36,11 @@ jobs:
           --health-retries 5
 
     env:
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRESQL_HOST: localhost
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_DB: mydatabase
+      POSTGRESQL_USER: postgres
+      POSTGRESQL_PASSWORD: postgres
 
     steps:
     - uses: actions/checkout@v4
