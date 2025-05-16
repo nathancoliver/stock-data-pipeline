@@ -69,10 +69,11 @@ jobs:
       run: |
         poetry run python main.py
       env:
-        CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
         AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_USERNAME: ${{ secrets.AWS_USERNAME }}
+        CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+        POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE: ${{ secrets.POSTGRESQL_STOCK_DATA_PIPELINE_DATABASE }}
         STOCK_DATA_PIPELINE_BUCKET_NAME: ${{ secrets.STOCK_DATA_PIPELINE_BUCKET_NAME }}
         STOCK_DATA_PIPELINE_BUCKET_REGION_NAME: ${{ secrets.STOCK_DATA_PIPELINE_BUCKET_REGION_NAME }}
     - name: Upload csv files
