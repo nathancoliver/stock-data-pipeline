@@ -22,6 +22,7 @@ from stock_data_pipeline import (
     Ticker,
     Tickers,
     check_table_append_compatibility,
+    create_directory,
     get_environment_variable,
     get_market_day,
     get_s3_table,
