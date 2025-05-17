@@ -115,11 +115,11 @@ if market_day:
         chrome_driver.scroll_window(700)
         time.sleep(5)
         chrome_driver.press_button(
-            cell_type=By.XPATH, path=sector.portfolio_tab_path, element_index=1
+            cell_type=By.XPATH, path=sector.portfolio_tab_path, element_index=0
         )
         time.sleep(5)
         chrome_driver.press_button(
-            cell_type=By.XPATH, path=sector.portfolio_csv_path, element_index=2
+            cell_type=By.XPATH, path=sector.portfolio_csv_path, element_index=1
         )
         while (
             not sector.portfolio_holdings_file_path.exists()
