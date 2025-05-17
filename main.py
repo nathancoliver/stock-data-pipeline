@@ -104,7 +104,7 @@ if market_day:
     for sector in sectors.sectors:
         print(f"Start scraping {sector.sector_symbol} sector info.")
         chrome_driver.load_url(sector.url)
-        time.sleep(5)
+        time.sleep(2)
         shares_outstanding = sectors.convert_shares_outstanding(
             chrome_driver.driver.find_element(
                 By.XPATH, sector.shares_outstanding_xpath
