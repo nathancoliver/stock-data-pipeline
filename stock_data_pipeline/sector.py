@@ -15,6 +15,7 @@ from .definitions import (
 )
 from .functions import (
     get_latest_date,
+    get_s3_table,
     make_ticker_sql_compatible,
 )
 from stock_data_pipeline import PostgreSQLConnection, S3Connection
@@ -40,6 +41,9 @@ class Sector:
         self.sector_shares_table_name = f"{self.sector_symbol}_shares"
         self.sector_history_s3_file_name = f"{self.sector_history_table_name}.csv"
         self.sector_shares_s3_file_name = f"{self.sector_shares_table_name}.csv"
+        self.sector_history_download_file_path = Path(
+            self.sector_shares_directory, self.sector_history_s3_file_name
+        )
         self.sector_shares_download_file_path = Path(
             self.sector_shares_directory, self.sector_shares_s3_file_name
         )
@@ -120,6 +124,11 @@ class Sector:
 
     def create_sector_history_table(self):
 
+        self.sector_history_df = get_s3_table(
+            self.s3_connection,
+            s3_file_name=self.sector_history_s3_file_name,
+            download_file_path=self.sector_history_download_file_path,
+        )
         self.add_missing_columns(
             column_type=TickerColumnType.PRICE,
             sql_table_name=self.sector_history_table_name,
