@@ -14,3 +14,8 @@ class DataTypes:
 class SQLOperation(Enum):
     EXECUTE = "execute"
     COMMIT = "commit"
+
+
+class TickerColumnType(Enum):
+    PRICE = "price"
+    SHARES = "shares"

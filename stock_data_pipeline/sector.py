@@ -7,7 +7,12 @@ import pandas as pd  # type:ignore
 
 
 from .chrome_driver import ChromeDriver
-from .definitions import SECTOR_SHARES_OUTSTANDING, DataTypes, SQLOperation
+from .definitions import (
+    SECTOR_SHARES_OUTSTANDING,
+    DataTypes,
+    SQLOperation,
+    TickerColumnType,
+)
 from .functions import (
     get_latest_date,
     make_ticker_sql_compatible,
@@ -40,6 +45,7 @@ class Sector:
         )
         self.sector_history_df: pd.DataFrame = pd.DataFrame()
         self.sector_shares_df: pd.DataFrame = pd.DataFrame()
+        self.new_tickers: List[str] = []
         self.sector_calculated_price_column_name = (
             f"{self.sector_symbol}_calculated_price"
         )
@@ -59,6 +65,20 @@ class Sector:
             "//button[contains(@class, 'btn-primary') and text()='CSV File']"
         )
         self.sector_shares_data_types = {"date": DataTypes.DATE}
+
+    def add_missing_columns(
+        self,
+        column_type: TickerColumnType,
+        sql_table_name: str,
+        data_type_string: str,
+        postgresql_connection: PostgreSQLConnection,
+    ):
+        missing_columns = [
+            f"{new_ticker}_{column_type.value}" for new_ticker in self.new_tickers
+        ]
+        for missing_column in missing_columns:
+            query = f"ALTER TABLE {sql_table_name} ADD COLUMN {missing_column} {data_type_string} NULL"
+            postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
     def add_ticker(self, ticker_object: Ticker):
         if ticker_object.ticker_symbol not in self.tickers:
@@ -100,7 +120,12 @@ class Sector:
 
     def create_sector_history_table(self):
 
-        # TODO: create multiple private functions to make code more readable
+        self.add_missing_columns(
+            column_type=TickerColumnType.PRICE,
+            sql_table_name=self.sector_history_table_name,
+            data_type_string=DataTypes.INT,
+            postgresql_connection=self.postgresql_connection,
+        )
         first_ticker = self.tickers[0]
         first_ticker_table_name = first_ticker.table_name
         first_ticker_price_column = first_ticker.price_column_name
@@ -170,6 +195,11 @@ class Sector:
             df_sector_shares, index="date", columns="symbol", values="shares_held"
         )
         return df_sector_shares
+
+    def get_new_tickers(self, original_tickers: List[str], latest_tickers: List[str]):
+        self.new_tickers = [
+            column for column in latest_tickers if column not in original_tickers
+        ]  # TODO: add missing columns to sql_table
 
     def get_s3_table(self):
         self.s3_connection.download_file(

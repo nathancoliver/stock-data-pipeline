@@ -19,6 +19,7 @@ from stock_data_pipeline import (
     S3Connection,
     Sectors,
     SQLOperation,
+    TickerColumnType,
     Ticker,
     Tickers,
     check_table_append_compatibility,
