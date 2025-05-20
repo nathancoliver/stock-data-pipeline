@@ -140,25 +140,26 @@ if market_day:
         operation=SQLOperation.COMMIT,
     )
     for sector in sectors.sectors:
-        # TODO: Download S3 sector shares csv, create SQL/Pandas table, append table with latest data, and upload appended table to S3.
         sector.sector_shares_df = get_s3_table(
             sector.s3_connection,
             s3_file_name=sector.sector_shares_s3_file_name,
             download_file_path=sector.sector_shares_download_file_path,
         )  # Download S3 table and create Pandas table TODO: Need to return None if CSV table in S3 does not exist.
+        latest_sector_shares = sector.create_sector_shares_dataframe(
+            todays_date
+        )  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
+        latest_sector_shares.columns = [
+            f"{column}_shares" for column in latest_sector_shares
+        ]
         tickers_in_sector = [
             ticker_shares.replace("_shares", "")
-            for ticker_shares in set(sector.sector_shares_df.columns)
+            for ticker_shares in set(latest_sector_shares.columns)
         ]
         sector_weights_dtypes = {"date": sqlalchemy.types.Date}
         sector_weights_dtypes_strings = {
             "date": DataTypes.DATE,
         }
-        for (
-            ticker_symbol
-        ) in (
-            tickers_in_sector
-        ):  # TODO: check if for loop can be skipped in certain situations (e.g. latest_date is None)
+        for ticker_symbol in tickers_in_sector:
             ticker_object = Ticker(ticker_symbol, postgresql_connection)
             sector.add_ticker(ticker_object)
             tickers.add_ticker(ticker_symbol, ticker_object)
@@ -183,15 +184,23 @@ if market_day:
             postgresql_connection=postgresql_connection,
             data_frame=sector.sector_shares_df,
         )
-        df_sector_shares = sector.create_sector_shares_dataframe(
-            todays_date
-        )  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
-        df_sector_shares.columns = [f"{column}_shares" for column in df_sector_shares]
+
         latest_date = sector.get_s3_table_latest_date()
         if (
             todays_date > latest_date
         ):  # TODO: If date is None, error. Need to fix, probably with If latest_date is None, elif ...
-            df_sector_shares.to_sql(
+            sector.new_tickers = [
+                column
+                for column in latest_sector_shares.columns
+                if column not in sector.sector_shares_df.columns
+            ]
+            sector.add_missing_columns(
+                column_type=TickerColumnType.SHARES,
+                sql_table_name=sector.sector_shares_table_name,
+                data_type_string=DataTypes.BIGINT,
+                postgresql_connection=postgresql_connection,
+            )
+            latest_sector_shares.to_sql(
                 make_ticker_sql_compatible(sector.sector_shares_table_name),
                 con=postgresql_connection.engine,
                 if_exists="append",  # TODO: need to figure out why append does not currently work. Should be able to take one row sector shares df and append to SQL table.
