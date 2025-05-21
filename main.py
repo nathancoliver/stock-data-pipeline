@@ -151,6 +151,11 @@ if market_day:
         latest_sector_shares.columns = [
             f"{column}_shares" for column in latest_sector_shares
         ]
+        sector.old_tickers = [
+            column.replace("_shares", "")
+            for column in sector.sector_shares_df.columns
+            if column not in latest_sector_shares.columns
+        ]
         tickers_in_sector = [
             ticker_shares.replace("_shares", "")
             for ticker_shares in set(latest_sector_shares.columns)
@@ -159,7 +164,7 @@ if market_day:
         sector_weights_dtypes_strings = {
             "date": DataTypes.DATE,
         }
-        for ticker_symbol in tickers_in_sector:
+        for ticker_symbol in tickers_in_sector + sector.old_tickers:
             ticker_object = Ticker(ticker_symbol, postgresql_connection)
             sector.add_ticker(ticker_object)
             tickers.add_ticker(ticker_symbol, ticker_object)

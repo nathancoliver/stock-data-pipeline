@@ -50,6 +50,7 @@ class Sector:
         self.sector_history_df: pd.DataFrame = pd.DataFrame()
         self.sector_shares_df: pd.DataFrame = pd.DataFrame()
         self.new_tickers: List[str] = []
+        self.old_tickers: List[str] = []
         self.sector_calculated_price_column_name = (
             f"{self.sector_symbol}_calculated_price"
         )
