@@ -4,7 +4,7 @@ from enum import Enum
 SECTOR_SHARES_OUTSTANDING = "sector_shares_outstanding"
 
 
-class DataTypes(Enum):
+class DataTypes:
     BIGINT = "BIGINT"
     DATE = "DATE"
     INT = "INT"
@@ -14,3 +14,8 @@ class DataTypes(Enum):
 class SQLOperation(Enum):
     EXECUTE = "execute"
     COMMIT = "commit"
+
+
+class TickerColumnType(Enum):
+    PRICE = "price"
+    SHARES = "shares"

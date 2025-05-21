@@ -3,7 +3,7 @@
 
 name: Python package
 
-on:
+on: 
   pull_request:
     branches: [ "main" ]
   schedule:
@@ -16,7 +16,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.11"]
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ secrets.POSTGRESQL_DB}}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRESQL_HOST: localhost
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_DB: ${{ secrets.POSTGRESQL_DB}}
+      POSTGRESQL_USER: postgres
+      POSTGRESQL_PASSWORD: postgres
 
     steps:
     - uses: actions/checkout@v4
@@ -29,6 +51,34 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Install poetry
+      uses: snok/install-poetry@v1
+    - name: Install dependencies with poetry
+      run: |
+        poetry install
+    - name: Install Chrome
+      uses: browser-actions/setup-chrome@v1
+      id: setup-chrome
+      with:
+        chrome-version: 135
+        install-chromedriver: true
+        install-dependencies: true
+    - name: Run main.py
+      run: |
+        poetry run python main.py
+      env:
+        AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_USERNAME: ${{ secrets.AWS_USERNAME }}
+        CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+        POSTGRESQL_DB: ${{ secrets.POSTGRESQL_DB}}
+        STOCK_DATA_PIPELINE_BUCKET_NAME: ${{ secrets.STOCK_DATA_PIPELINE_BUCKET_NAME }}
+        STOCK_DATA_PIPELINE_BUCKET_REGION_NAME: ${{ secrets.STOCK_DATA_PIPELINE_BUCKET_REGION_NAME }}
+    - name: Upload csv files
+      uses: actions/upload-artifact@v4
+      with:
+        name: stock-weights
+        path: stock_weights/
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
