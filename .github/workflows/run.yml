@@ -56,13 +56,6 @@ jobs:
     - name: Install dependencies with poetry
       run: |
         poetry install
-    - name: Install Chrome
-      uses: browser-actions/setup-chrome@v1
-      id: setup-chrome
-      with:
-        chrome-version: 135
-        install-chromedriver: true
-        install-dependencies: true
     - name: Run main.py
       run: |
         poetry run python main.py
@@ -70,7 +63,6 @@ jobs:
         AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_USERNAME: ${{ secrets.AWS_USERNAME }}
-        CHROMEDRIVER_PATH: ${{ steps.setup-chrome.outputs.chromedriver-path }}
         POSTGRESQL_DB: ${{ secrets.POSTGRESQL_DB}}
         STOCK_DATA_PIPELINE_BUCKET_NAME: ${{ secrets.STOCK_DATA_PIPELINE_BUCKET_NAME }}
         STOCK_DATA_PIPELINE_BUCKET_REGION_NAME: ${{ secrets.STOCK_DATA_PIPELINE_BUCKET_REGION_NAME }}
