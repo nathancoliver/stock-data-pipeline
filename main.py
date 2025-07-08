@@ -19,6 +19,7 @@ from stock_data_pipeline import (
     TickerColumnType,
     Ticker,
     Tickers,
+    STOCK_WEIGHT_DIRECTORY,
     check_table_append_compatibility,
     create_directory,
     get_environment_variable,
@@ -66,7 +67,7 @@ stock_history_dtypes = {
     "close": sqlalchemy.types.Numeric(10, 2),
     "volume": sqlalchemy.types.BigInteger,
 }
-STOCK_WEIGHT_DIRECTORY = Path("stock_weights")
+
 DATA_DIRECTORY = Path("data")
 config_directory = "config"
 sectors_file_name = "spdr_sectors.txt"

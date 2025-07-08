@@ -10,6 +10,7 @@ import pandas as pd  # type:ignore
 
 from .definitions import (
     SECTOR_SHARES_OUTSTANDING,
+    STOCK_WEIGHT_DIRECTORY,
     DataTypes,
     SQLOperation,
     TickerColumnType,
@@ -56,8 +57,8 @@ class Sector:
         self.url_shares_outstanding = f"https://www.ssga.com/us/en/institutional/etfs/the-materials-select-sector-spdr-fund-{self.sector_symbol}"
         self.url_xlsx = f"https://www.ssga.com/us/en/institutional/library-content/products/fund-data/etfs/us/holdings-daily-us-en-{self.sector_symbol}.xlsx"
         self.portfolio_holdings_file_path: Path = Path(
-            "stock-weights",
-            f"portfolio-holdings-{self.sector_symbol}.csv",
+            STOCK_WEIGHT_DIRECTORY,
+            f"holdings-daily-us-en-{self.sector_symbol}.xlsx",
         )
         self.tickers: List[Ticker] = []
         self.shares_outstanding: None | int = None
