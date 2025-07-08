@@ -176,9 +176,9 @@ class Sector:
     def create_sector_shares_dataframe(
         self, todays_date: datetime.datetime
     ) -> pd.DataFrame:
-        df_sector_shares = pd.read_excel(
-            self.portfolio_holdings_file_path, skiprows=4, engine="openpyxl"
-        )[["Ticker", "Weight", "Shares Held"]]
+        df_sector_shares = pd.read_excel(self.portfolio_holdings_file_path, skiprows=4)[
+            ["Ticker", "Weight", "Shares Held"]
+        ]
         df_sector_shares.columns = [
             column.lower().replace(" ", "_") for column in df_sector_shares.columns
         ]
