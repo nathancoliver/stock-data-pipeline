@@ -4,7 +4,6 @@ import pandas as pd  # type: ignore
 import sqlalchemy
 
 
-from .chrome_driver import ChromeDriver
 from .definitions import SECTOR_SHARES_OUTSTANDING, DataTypes
 from .functions import (
     get_s3_table,
@@ -18,11 +17,9 @@ from .sector import Sector
 
 
 class Sectors:
-
     def __init__(
         self,
         file_path: Path,
-        chrome_driver: ChromeDriver,
         postgresql_connection: PostgreSQLConnection,
         s3_connection: S3Connection,
     ):
@@ -52,7 +49,6 @@ class Sectors:
             for sector_ticker in file:
                 sector = Sector(
                     sector_ticker.rstrip("\n"),
-                    chrome_driver=chrome_driver,
                     postgresql_connection=self.postgresql_connection,
                     s3_connection=s3_connection,
                     sector_shares_directory=self.sector_shares_directory,

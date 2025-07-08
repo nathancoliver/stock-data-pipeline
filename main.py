@@ -6,13 +6,10 @@ import os
 from pathlib import Path
 import time
 from typing import Dict
+import requests
 import sqlalchemy
 
-
-from selenium.webdriver.common.by import By
-
 from stock_data_pipeline import (
-    ChromeDriver,
     CollectDailyData,
     DataTypes,
     PostgreSQLConnection,
@@ -22,6 +19,7 @@ from stock_data_pipeline import (
     TickerColumnType,
     Ticker,
     Tickers,
+    STOCK_WEIGHT_DIRECTORY,
     check_table_append_compatibility,
     create_directory,
     get_environment_variable,
@@ -69,14 +67,14 @@ stock_history_dtypes = {
     "close": sqlalchemy.types.Numeric(10, 2),
     "volume": sqlalchemy.types.BigInteger,
 }
-STOCK_WEIGHT_DIRECTORY = Path("stock_weights")
+
 DATA_DIRECTORY = Path("data")
 config_directory = "config"
 sectors_file_name = "spdr_sectors.txt"
 sectors_file_path = Path(config_directory, sectors_file_name)
 
 create_directory(DATA_DIRECTORY)
-chrome_driver = ChromeDriver(STOCK_WEIGHT_DIRECTORY)
+create_directory(STOCK_WEIGHT_DIRECTORY)
 
 postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
 s3_connection = S3Connection(
@@ -91,7 +89,6 @@ s3_connection = S3Connection(
 
 sectors = Sectors(
     sectors_file_path,
-    chrome_driver=chrome_driver,
     postgresql_connection=postgresql_connection,
     s3_connection=s3_connection,
 )
@@ -104,31 +101,21 @@ market_day = get_market_day(todays_date)
 if market_day:
     for sector in sectors.sectors:
         print(f"Start scraping {sector.sector_symbol} sector info.")
-        chrome_driver.load_url(sector.url)
+
+        response = requests.get(sector.url_shares_outstanding)
+        shares_outstanding_text = sector.parse_shares_outstanding(response.text)
         time.sleep(2)
-        shares_outstanding = sectors.convert_shares_outstanding(
-            chrome_driver.driver.find_element(
-                By.XPATH, sector.shares_outstanding_xpath
-            ).text
-        )
+        shares_outstanding = sectors.convert_shares_outstanding(shares_outstanding_text)
         sectors.append_shares_outstanding_dict(sector, shares_outstanding)
         sector.shares_outstanding = shares_outstanding
-        chrome_driver.scroll_window(700)
-        time.sleep(5)
-        chrome_driver.press_button(
-            cell_type=By.XPATH, path=sector.portfolio_tab_path, element_index=0
-        )
-        time.sleep(5)
-        chrome_driver.press_button(
-            cell_type=By.XPATH, path=sector.portfolio_csv_path, element_index=1
-        )
-        while (
-            not sector.portfolio_holdings_file_path.exists()
-        ):  # Wait until file is downloaded.
-            time.sleep(0.1)
+        response = requests.get(sector.url_xlsx)
+        with open(
+            f"{STOCK_WEIGHT_DIRECTORY}/holdings-daily-us-en-{sector.sector_symbol}.xlsx",
+            "wb",
+        ) as f:
+            f.write(response.content)
         print(f"End scraping {sector.sector_symbol} sector info.")
 
-    chrome_driver.quit_driver()
     print("Quit driver.")
     for sector in sectors.sectors:
         postgresql_connection.execute_query(

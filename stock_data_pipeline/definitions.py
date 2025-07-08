@@ -1,7 +1,9 @@
 from enum import Enum
+from pathlib import Path
 
 
 SECTOR_SHARES_OUTSTANDING = "sector_shares_outstanding"
+STOCK_WEIGHT_DIRECTORY = Path("stock_weights")
 
 
 class DataTypes:

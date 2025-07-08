@@ -1,14 +1,16 @@
 import datetime
 from pathlib import Path
+import re
 from typing import List
 
 
+from bs4 import BeautifulSoup
 import pandas as pd  # type:ignore
 
 
-from .chrome_driver import ChromeDriver
 from .definitions import (
     SECTOR_SHARES_OUTSTANDING,
+    STOCK_WEIGHT_DIRECTORY,
     DataTypes,
     SQLOperation,
     TickerColumnType,
@@ -23,16 +25,13 @@ from .ticker import Ticker
 
 
 class Sector:
-
     def __init__(
         self,
         sector: str,
-        chrome_driver: ChromeDriver,
         postgresql_connection: PostgreSQLConnection,
         s3_connection: S3Connection,
         sector_shares_directory: Path,
     ):
-        self.download_file_directory_path = chrome_driver.download_file_directory_path
         self.sector_symbol = make_ticker_sql_compatible(sector)
         self.postgresql_connection = postgresql_connection
         self.s3_connection = s3_connection
@@ -55,19 +54,21 @@ class Sector:
             f"{self.sector_symbol}_calculated_price"
         )
         self.shares_outstanding: None | int = None
-        self.url = f"https://www.sectorspdrs.com/mainfund/{self.sector_symbol}"
+        self.url_shares_outstanding = f"https://www.ssga.com/us/en/institutional/etfs/the-materials-select-sector-spdr-fund-{self.sector_symbol}"
+        self.url_xlsx = f"https://www.ssga.com/us/en/institutional/library-content/products/fund-data/etfs/us/holdings-daily-us-en-{self.sector_symbol}.xlsx"
         self.portfolio_holdings_file_path: Path = Path(
-            self.download_file_directory_path,
-            f"portfolio-holdings-{self.sector_symbol}.csv",
+            STOCK_WEIGHT_DIRECTORY,
+            f"holdings-daily-us-en-{self.sector_symbol}.xlsx",
         )
         self.tickers: List[Ticker] = []
         self.shares_outstanding: None | int = None
+        self.accept_xpath = """//*[@id="js-ssmp-clrButtonLabel"]"""
         self.shares_outstanding_xpath = (
             "//dt[text()='Shares Outstanding']/following-sibling::dd"
         )
-        self.portfolio_tab_path = "//button[text()='Portfolio Holdings']"
-        self.portfolio_csv_path = (
-            "//button[contains(@class, 'btn-primary') and text()='CSV File']"
+        self.portfolio_csv_link_text = "Daily"
+        self.portfolio_csv_link_xpath = (
+            """//*[@id="holdings"]/div/div[1]/section/div/div[2]/div[1]/div[2]/a"""
         )
         self.sector_shares_data_types = {"date": DataTypes.DATE}
 
@@ -124,7 +125,6 @@ class Sector:
         self.postgresql_connection.execute_query(query, SQLOperation.COMMIT)
 
     def create_sector_history_table(self):
-
         self.sector_history_df = get_s3_table(
             self.s3_connection,
             s3_file_name=self.sector_history_s3_file_name,
@@ -176,33 +176,30 @@ class Sector:
     def create_sector_shares_dataframe(
         self, todays_date: datetime.datetime
     ) -> pd.DataFrame:
-
-        df_sector_shares = pd.read_csv(self.portfolio_holdings_file_path, header=1)[
-            ["Symbol", "Weight", "Shares Held"]
+        df_sector_shares = pd.read_excel(self.portfolio_holdings_file_path, skiprows=4)[
+            ["Ticker", "Weight", "Shares Held"]
         ]
         df_sector_shares.columns = [
             column.lower().replace(" ", "_") for column in df_sector_shares.columns
         ]
         df_sector_shares = df_sector_shares[
-            df_sector_shares["symbol"].notna()
+            df_sector_shares["ticker"] != "-"
         ]  # TODO: Add note as to why this is removed
         df_sector_shares = df_sector_shares[
-            ~df_sector_shares["symbol"].str.contains("25")
+            df_sector_shares["ticker"].notna()
         ]  # TODO: Add note as to why this is removed
-        df_sector_shares["symbol"] = [
-            make_ticker_sql_compatible(symbol) for symbol in df_sector_shares["symbol"]
+        df_sector_shares = df_sector_shares[
+            ~df_sector_shares["ticker"].str.contains("5")
         ]
-        df_sector_shares = df_sector_shares.sort_values(by="symbol")
+        df_sector_shares["ticker"] = [
+            make_ticker_sql_compatible(ticker) for ticker in df_sector_shares["ticker"]
+        ]
+        df_sector_shares = df_sector_shares.sort_values(by="ticker")
 
-        df_sector_shares["weight"] = (
-            df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
-        )
-        df_sector_shares["shares_held"] = (
-            df_sector_shares["shares_held"].str.replace(",", "").astype(int)
-        )
+        df_sector_shares["weight"] = df_sector_shares["weight"] / 100
         df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
         df_sector_shares = pd.pivot(
-            df_sector_shares, index="date", columns="symbol", values="shares_held"
+            df_sector_shares, index="date", columns="ticker", values="shares_held"
         )
         return df_sector_shares
 
@@ -226,3 +223,25 @@ class Sector:
 
     def get_s3_table_latest_date(self) -> pd.DatetimeIndex | None:
         return get_latest_date(self.sector_shares_df, date_format="%Y-%m-%d")
+
+    def parse_shares_outstanding(self, html: str):
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Find the <td> that contains 'Shares Outstanding'
+        label_td = soup.find("td", string=re.compile(r"\bShares Outstanding\b", re.I))
+
+        # If found, get the next sibling <td> which contains the number
+        if label_td:
+            data_td = label_td.find_next_sibling("td", class_="data")
+            if data_td:
+                match = re.search(r"([\d,.]+)\s*([MB])", data_td.text.strip())
+                if match:
+                    number = match.group(1)
+                    suffix = match.group(2)
+                    return f"{number} {suffix}"
+                else:
+                    print("Pattern not found.")
+            else:
+                print("Data cell not found.")
+        else:
+            print("Label cell not found.")

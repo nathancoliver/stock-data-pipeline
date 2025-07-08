@@ -1,7 +1,12 @@
 # TODO: Add import of CollectDailyData and YFinance
 
 from .chrome_driver import ChromeDriver
-from .definitions import DataTypes, SQLOperation, TickerColumnType
+from .definitions import (
+    DataTypes,
+    SQLOperation,
+    TickerColumnType,
+    STOCK_WEIGHT_DIRECTORY,
+)
 from .functions import (
     check_table_append_compatibility,
     convert_sql_data_type_into_string,
