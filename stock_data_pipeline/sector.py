@@ -176,32 +176,30 @@ class Sector:
     def create_sector_shares_dataframe(
         self, todays_date: datetime.datetime
     ) -> pd.DataFrame:
-        df_sector_shares = pd.read_csv(self.portfolio_holdings_file_path, header=1)[
-            ["Symbol", "Weight", "Shares Held"]
-        ]
+        df_sector_shares = pd.read_excel(
+            self.portfolio_holdings_file_path, skiprows=4, engine="openpyxl"
+        )[["Ticker", "Weight", "Shares Held"]]
         df_sector_shares.columns = [
             column.lower().replace(" ", "_") for column in df_sector_shares.columns
         ]
         df_sector_shares = df_sector_shares[
-            df_sector_shares["symbol"].notna()
+            df_sector_shares["ticker"] != "-"
         ]  # TODO: Add note as to why this is removed
         df_sector_shares = df_sector_shares[
-            ~df_sector_shares["symbol"].str.contains("25")
+            df_sector_shares["ticker"].notna()
         ]  # TODO: Add note as to why this is removed
-        df_sector_shares["symbol"] = [
-            make_ticker_sql_compatible(symbol) for symbol in df_sector_shares["symbol"]
+        df_sector_shares = df_sector_shares[
+            ~df_sector_shares["ticker"].str.contains("5")
         ]
-        df_sector_shares = df_sector_shares.sort_values(by="symbol")
+        df_sector_shares["ticker"] = [
+            make_ticker_sql_compatible(ticker) for ticker in df_sector_shares["ticker"]
+        ]
+        df_sector_shares = df_sector_shares.sort_values(by="ticker")
 
-        df_sector_shares["weight"] = (
-            df_sector_shares["weight"].str.rstrip("%").astype(float) / 100
-        )
-        df_sector_shares["shares_held"] = (
-            df_sector_shares["shares_held"].str.replace(",", "").astype(int)
-        )
+        df_sector_shares["weight"] = df_sector_shares["weight"] / 100
         df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
         df_sector_shares = pd.pivot(
-            df_sector_shares, index="date", columns="symbol", values="shares_held"
+            df_sector_shares, index="date", columns="ticker", values="shares_held"
         )
         return df_sector_shares
 
