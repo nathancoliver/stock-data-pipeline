@@ -74,6 +74,7 @@ sectors_file_name = "spdr_sectors.txt"
 sectors_file_path = Path(config_directory, sectors_file_name)
 
 create_directory(DATA_DIRECTORY)
+create_directory(STOCK_WEIGHT_DIRECTORY)
 
 postgresql_connection = PostgreSQLConnection(database_parameters, engine_parameters)
 s3_connection = S3Connection(
