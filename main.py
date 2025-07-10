@@ -124,6 +124,7 @@ if market_day:
             s3_file_name=sector.sector_shares_s3_file_name,
             download_file_path=sector.sector_shares_download_file_path,
         )
+        sector.sector_shares_df.drop([column for column in sector.sector_shares_df if "_shares_shares" in column], axis=1, inplace=True)  # Download S3 table and create Pandas table TODO: Need to return None if CSV table in S3 does not exist.
         latest_sector_shares = sector.create_sector_shares_dataframe(todays_date)  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
         latest_sector_shares.columns = [f"{column}_shares" for column in latest_sector_shares]
         sector.old_tickers = [column.replace("_shares", "") for column in sector.sector_shares_df.columns if column not in latest_sector_shares.columns]
