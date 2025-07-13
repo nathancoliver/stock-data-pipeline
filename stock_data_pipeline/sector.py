@@ -40,19 +40,13 @@ class Sector:
         self.sector_shares_table_name = f"{self.sector_symbol}_shares"
         self.sector_history_s3_file_name = f"{self.sector_history_table_name}.csv"
         self.sector_shares_s3_file_name = f"{self.sector_shares_table_name}.csv"
-        self.sector_history_download_file_path = Path(
-            self.sector_shares_directory, self.sector_history_s3_file_name
-        )
-        self.sector_shares_download_file_path = Path(
-            self.sector_shares_directory, self.sector_shares_s3_file_name
-        )
+        self.sector_history_download_file_path = Path(self.sector_shares_directory, self.sector_history_s3_file_name)
+        self.sector_shares_download_file_path = Path(self.sector_shares_directory, self.sector_shares_s3_file_name)
         self.sector_history_df: pd.DataFrame = pd.DataFrame()
         self.sector_shares_df: pd.DataFrame = pd.DataFrame()
         self.new_tickers: List[str] = []
         self.old_tickers: List[str] = []
-        self.sector_calculated_price_column_name = (
-            f"{self.sector_symbol}_calculated_price"
-        )
+        self.sector_calculated_price_column_name = f"{self.sector_symbol}_calculated_price"
         self.shares_outstanding: None | int = None
         self.url_shares_outstanding = f"https://www.ssga.com/us/en/institutional/etfs/the-materials-select-sector-spdr-fund-{self.sector_symbol}"
         self.url_xlsx = f"https://www.ssga.com/us/en/institutional/library-content/products/fund-data/etfs/us/holdings-daily-us-en-{self.sector_symbol}.xlsx"
@@ -63,13 +57,9 @@ class Sector:
         self.tickers: List[Ticker] = []
         self.shares_outstanding: None | int = None
         self.accept_xpath = """//*[@id="js-ssmp-clrButtonLabel"]"""
-        self.shares_outstanding_xpath = (
-            "//dt[text()='Shares Outstanding']/following-sibling::dd"
-        )
+        self.shares_outstanding_xpath = "//dt[text()='Shares Outstanding']/following-sibling::dd"
         self.portfolio_csv_link_text = "Daily"
-        self.portfolio_csv_link_xpath = (
-            """//*[@id="holdings"]/div/div[1]/section/div/div[2]/div[1]/div[2]/a"""
-        )
+        self.portfolio_csv_link_xpath = """//*[@id="holdings"]/div/div[1]/section/div/div[2]/div[1]/div[2]/a"""
         self.sector_shares_data_types = {"date": DataTypes.DATE}
 
     def add_missing_columns(
@@ -79,9 +69,7 @@ class Sector:
         data_type_string: str,
         postgresql_connection: PostgreSQLConnection,
     ):
-        missing_columns = [
-            f"{new_ticker}_{column_type.value}" for new_ticker in self.new_tickers
-        ]
+        missing_columns = [f"{new_ticker}_{column_type.value}" for new_ticker in self.new_tickers]
         for missing_column in missing_columns:
             query = f"ALTER TABLE {sql_table_name} ADD COLUMN {missing_column} {data_type_string} NULL"
             postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
@@ -89,9 +77,7 @@ class Sector:
     def add_ticker(self, ticker_object: Ticker):
         if ticker_object.ticker_symbol not in self.tickers:
             self.tickers.append(ticker_object)
-            self.sector_shares_data_types.update(
-                {ticker_object.ticker_symbol: DataTypes.BIGINT}
-            )
+            self.sector_shares_data_types.update({ticker_object.ticker_symbol: DataTypes.BIGINT})
 
     def calculate_sector_price(self):
         drop_column_query = f"ALTER TABLE {self.sector_history_table_name} DROP COLUMN IF EXISTS {self.sector_calculated_price_column_name}"
@@ -104,9 +90,7 @@ class Sector:
         set_query = f"SET {self.sector_calculated_price_column_name} = "
         calculation_queries = []
         for ticker in self.tickers:
-            calculation_queries.append(
-                f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.shares_column_name}"
-            )
+            calculation_queries.append(f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.shares_column_name}")
         calculation_query = f"""{" ( " + " + ".join(calculation_queries) + " ) "} / {SECTOR_SHARES_OUTSTANDING}.{self.sector_symbol}"""
         from_query = f"FROM {SECTOR_SHARES_OUTSTANDING}"
         join_query = f"JOIN {self.sector_shares_table_name} on {self.sector_shares_table_name}.date = {SECTOR_SHARES_OUTSTANDING}.date"
@@ -139,13 +123,9 @@ class Sector:
         first_ticker = self.tickers[0]
         first_ticker_table_name = first_ticker.table_name
         first_ticker_price_column = first_ticker.price_column_name
-        table_name_query = (
-            f"CREATE TABLE IF NOT EXISTS {self.sector_history_table_name} as"
-        )
+        table_name_query = f"CREATE TABLE IF NOT EXISTS {self.sector_history_table_name} as"
         select_query = f" SELECT {first_ticker_table_name}.date as date"
-        column_query = (
-            f", {first_ticker_table_name}.close as {first_ticker_price_column}"
-        )
+        column_query = f", {first_ticker_table_name}.close as {first_ticker_price_column}"
         from_query = f" FROM {first_ticker_table_name}"
         join_query = ""
         for ticker in self.tickers[1:]:
@@ -153,14 +133,7 @@ class Sector:
             column_query += f", {ticker_table_name}.close as {ticker.price_column_name}"
             join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
         order_by_query = f" ORDER BY {first_ticker_table_name}.date ASC"
-        query = (
-            table_name_query
-            + select_query
-            + column_query
-            + from_query
-            + join_query
-            + order_by_query
-        )
+        query = table_name_query + select_query + column_query + from_query + join_query + order_by_query
         self.postgresql_connection.execute_query(
             f"DROP TABLE IF EXISTS {self.sector_history_table_name}",
             operation=SQLOperation.COMMIT,
@@ -173,40 +146,22 @@ class Sector:
             postgresql_connection=self.postgresql_connection,
         )
 
-    def create_sector_shares_dataframe(
-        self, todays_date: datetime.datetime
-    ) -> pd.DataFrame:
-        df_sector_shares = pd.read_excel(self.portfolio_holdings_file_path, skiprows=4)[
-            ["Ticker", "Weight", "Shares Held"]
-        ]
-        df_sector_shares.columns = [
-            column.lower().replace(" ", "_") for column in df_sector_shares.columns
-        ]
-        df_sector_shares = df_sector_shares[
-            df_sector_shares["ticker"] != "-"
-        ]  # TODO: Add note as to why this is removed
-        df_sector_shares = df_sector_shares[
-            df_sector_shares["ticker"].notna()
-        ]  # TODO: Add note as to why this is removed
-        df_sector_shares = df_sector_shares[
-            ~df_sector_shares["ticker"].str.contains("5")
-        ]
-        df_sector_shares["ticker"] = [
-            make_ticker_sql_compatible(ticker) for ticker in df_sector_shares["ticker"]
-        ]
+    def create_sector_shares_dataframe(self, todays_date: datetime.datetime) -> pd.DataFrame:
+        df_sector_shares = pd.read_excel(self.portfolio_holdings_file_path, skiprows=4)[["Ticker", "Weight", "Shares Held"]]
+        df_sector_shares.columns = [column.lower().replace(" ", "_") for column in df_sector_shares.columns]
+        df_sector_shares = df_sector_shares[df_sector_shares["ticker"] != "-"]  # TODO: Add note as to why this is removed
+        df_sector_shares = df_sector_shares[df_sector_shares["ticker"].notna()]  # TODO: Add note as to why this is removed
+        df_sector_shares = df_sector_shares[~df_sector_shares["ticker"].str.contains("5")]
+        df_sector_shares["ticker"] = [make_ticker_sql_compatible(ticker) for ticker in df_sector_shares["ticker"]]
         df_sector_shares = df_sector_shares.sort_values(by="ticker")
 
         df_sector_shares["weight"] = df_sector_shares["weight"] / 100
         df_sector_shares["date"] = todays_date.strftime("%Y-%m-%d")
-        df_sector_shares = pd.pivot(
-            df_sector_shares, index="date", columns="ticker", values="shares_held"
-        )
+        df_sector_shares = pd.pivot(df_sector_shares, index="date", columns="ticker", values="shares_held")
         return df_sector_shares
 
     def get_new_tickers(self, original_tickers: List[str], latest_tickers: List[str]):
-        self.new_tickers = [
-            column for column in latest_tickers if column not in original_tickers
-        ]  # TODO: add missing columns to sql_table
+        self.new_tickers = [column for column in latest_tickers if column not in original_tickers]  # TODO: add missing columns to sql_table
 
     def get_s3_table(self):
         self.s3_connection.download_file(
@@ -215,9 +170,7 @@ class Sector:
         )
         if self.sector_shares_download_file_path.exists():
             self.sector_shares_df = pd.read_csv(self.sector_shares_download_file_path)
-            self.sector_shares_df.index = pd.to_datetime(
-                self.sector_shares_df["date"]
-            ).dt.strftime("%Y-%m-%d")
+            self.sector_shares_df.index = pd.to_datetime(self.sector_shares_df["date"]).dt.strftime("%Y-%m-%d")
             self.sector_shares_df.index.name = None
             self.sector_shares_df.drop(labels="date", inplace=True, axis=1)
 

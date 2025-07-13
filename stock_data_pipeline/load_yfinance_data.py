@@ -7,7 +7,6 @@ from typing import List
 
 
 class CollectDailyData:
-
     def __init__(
         self,
         ticker,
@@ -18,13 +17,9 @@ class CollectDailyData:
         self.ticker = ticker
         self.latest_date = latest_date
         if directory == Path(".") and save_as_feather:
-            raise NameError(
-                "Cannot set save_as_feather to True and not specify a directory"
-            )
+            raise NameError("Cannot set save_as_feather to True and not specify a directory")
         elif directory != Path(".") and not save_as_feather:
-            raise NameError(
-                "Cannot set save_as_feather to False and specify a directory"
-            )
+            raise NameError("Cannot set save_as_feather to False and specify a directory")
         if directory is not None:
             self.directory = directory
             file_name = f"{ticker}.feather"
@@ -64,9 +59,7 @@ class CollectDailyData:
             )
 
         except:
-            print(
-                f"Ticker {self.ticker} stock data does not exist from {start_date} to {end_date}"
-            )
+            print(f"Ticker {self.ticker} stock data does not exist from {start_date} to {end_date}")
 
     def _update_ticker_history(self):
         """Update the price and volume history to include the latest day(s)."""
@@ -126,7 +119,6 @@ class YFinance:
         return tickers
 
     def get_stock_data_multiple(self, tickers: List[int]) -> pd.DataFrame:
-
         dfs = []
         for ticker in tickers:
             stock = yf.Ticker(ticker)
@@ -134,24 +126,17 @@ class YFinance:
             dfs.append(df_history)
         return pd.concat(dfs, keys=tickers, axis=1)
 
-    def get_stock_data_single(
-        self, ticker: str, resolution: str, date_range: List[str]
-    ) -> pd.DataFrame:
+    def get_stock_data_single(self, ticker: str, resolution: str, date_range: List[str]) -> pd.DataFrame:
         start_year = date_range[0]
         end_year = date_range[1]
         stock = yf.Ticker(ticker)
         df_history = stock.history(interval=resolution, start=start_year, end=end_year)
         return df_history
 
-    def get_stock_fine_resolution(
-        self, ticker: str, resolution: str, date_range: List[str]
-    ) -> pd.DataFrame:
-
+    def get_stock_fine_resolution(self, ticker: str, resolution: str, date_range: List[str]) -> pd.DataFrame:
         start_year = date_range[0]
         end_year = date_range[1]
-        df_history = yf.download(
-            ticker, period=resolution, start=start_year, end=end_year
-        )
+        df_history = yf.download(ticker, period=resolution, start=start_year, end=end_year)
         return df_history
 
     def append_sma_column_to_dataframe(self, df: pd.DataFrame, sma: int):

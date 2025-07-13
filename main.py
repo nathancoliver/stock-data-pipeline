@@ -33,21 +33,13 @@ from stock_data_pipeline import (
 AWS_ACCESS_KEY = get_environment_variable("AWS_ACCESS_KEY")
 AWS_SECRET_ACCESS_KEY = get_environment_variable("AWS_SECRET_ACCESS_KEY")
 AWS_USERNAME = get_environment_variable("AWS_USERNAME")
-STOCK_DATA_PIPELINE_BUCKET_NAME = get_environment_variable(
-    "STOCK_DATA_PIPELINE_BUCKET_NAME"
-)
-STOCK_DATA_PIPELINE_BUCKET_REGION_NAME = get_environment_variable(
-    "STOCK_DATA_PIPELINE_BUCKET_REGION_NAME"
-)
+STOCK_DATA_PIPELINE_BUCKET_NAME = get_environment_variable("STOCK_DATA_PIPELINE_BUCKET_NAME")
+STOCK_DATA_PIPELINE_BUCKET_REGION_NAME = get_environment_variable("STOCK_DATA_PIPELINE_BUCKET_REGION_NAME")
 
-POSTGRESQL_HOST = get_environment_variable(
-    "POSTGRESQL_HOST", alternative_name="localhost"
-)
+POSTGRESQL_HOST = get_environment_variable("POSTGRESQL_HOST", alternative_name="localhost")
 POSTGRESQL_PORT = get_environment_variable("POSTGRESQL_PORT", alternative_name="5432")
 POSTGRESQL_DB = get_environment_variable("POSTGRESQL_DB")
-POSTGRESQL_USER = get_environment_variable(
-    "POSTGRESQL_USER", alternative_name="postgres"
-)
+POSTGRESQL_USER = get_environment_variable("POSTGRESQL_USER", alternative_name="postgres")
 POSTGRESQL_PASSWORD = get_environment_variable("POSTGRESQL_PASSWORD")
 
 
@@ -132,21 +124,9 @@ if market_day:
             s3_file_name=sector.sector_shares_s3_file_name,
             download_file_path=sector.sector_shares_download_file_path,
         )  # Download S3 table and create Pandas table TODO: Need to return None if CSV table in S3 does not exist.
-        latest_sector_shares = sector.create_sector_shares_dataframe(
-            todays_date
-        )  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
-        latest_sector_shares.columns = [
-            f"{column}_shares" for column in latest_sector_shares
-        ]
-        sector.old_tickers = [
-            column.replace("_shares", "")
-            for column in sector.sector_shares_df.columns
-            if column not in latest_sector_shares.columns
-        ]
-        tickers_in_sector = [
-            ticker_shares.replace("_shares", "")
-            for ticker_shares in set(latest_sector_shares.columns)
-        ]
+        latest_sector_shares = sector.create_sector_shares_dataframe(todays_date)  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
+        latest_sector_shares.columns = [f"{column}_shares" for column in latest_sector_shares]
+        sector.old_tickers = [column.replace("_shares", "") for column in sector.sector_shares_df.columns if column not in latest_sector_shares.columns]
         sector_weights_dtypes = {"date": sqlalchemy.types.Date}
         sector_weights_dtypes_strings = {
             "date": DataTypes.DATE,
@@ -155,9 +135,7 @@ if market_day:
             ticker_object = Ticker(ticker_symbol, postgresql_connection)
             sector.add_ticker(ticker_object)
             tickers.add_ticker(ticker_symbol, ticker_object)
-            sector_weights_dtypes.update(
-                {ticker_object.shares_column_name: sqlalchemy.types.BigInteger}
-            )  # TODO: Move this to Sector class, specifically init function and add_ticker func.
+            sector_weights_dtypes.update({ticker_object.shares_column_name: sqlalchemy.types.BigInteger})  # TODO: Move this to Sector class, specifically init function and add_ticker func.
             sector_weights_dtypes_strings.update(
                 {
                     ticker_object.shares_column_name: DataTypes.BIGINT,
@@ -178,14 +156,8 @@ if market_day:
         )
 
         latest_date = sector.get_s3_table_latest_date()
-        if (
-            todays_date > latest_date
-        ):  # TODO: If date is None, error. Need to fix, probably with If latest_date is None, elif ...
-            sector.new_tickers = [
-                column
-                for column in latest_sector_shares.columns
-                if column not in sector.sector_shares_df.columns
-            ]
+        if todays_date > latest_date:  # TODO: If date is None, error. Need to fix, probably with If latest_date is None, elif ...
+            sector.new_tickers = [column for column in latest_sector_shares.columns if column not in sector.sector_shares_df.columns]
             sector.add_missing_columns(
                 column_type=TickerColumnType.SHARES,
                 sql_table_name=sector.sector_shares_table_name,
@@ -211,25 +183,13 @@ if market_day:
     # Create or append stock history table for each ticker.
     for ticker in tickers.tickers.values():
         print(f"Start retrieve {ticker.ticker_symbol} stock history.")
-        latest_date = (
-            ticker.get_stock_history_latest_date()
-        )  # Get latest date of stock history table.
-        collect_stock_data = CollectDailyData(
-            ticker.yfinance_ticker, latest_date=latest_date
-        )  # initialize CollectDailyData class.
-        ticker.stock_history = (
-            collect_stock_data.get_ticker_history()
-        )  # retrieve stock history pd.DataFrame.
+        latest_date = ticker.get_stock_history_latest_date()  # Get latest date of stock history table.
+        collect_stock_data = CollectDailyData(ticker.yfinance_ticker, latest_date=latest_date)  # initialize CollectDailyData class.
+        ticker.stock_history = collect_stock_data.get_ticker_history()  # retrieve stock history pd.DataFrame.
         if ticker.stock_history is not None:
-            ticker.stock_history.columns = [
-                column.lower() for column in ticker.stock_history.columns
-            ]  # Set column names to all lower-case letters.
-            ticker.stock_history.index.name = (
-                ticker.stock_history.index.name.lower()
-            )  # Set date index to lower-case letters.
-            stock_history = check_table_append_compatibility(
-                latest_date, ticker.stock_history
-            )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
+            ticker.stock_history.columns = [column.lower() for column in ticker.stock_history.columns]  # Set column names to all lower-case letters.
+            ticker.stock_history.index.name = ticker.stock_history.index.name.lower()  # Set date index to lower-case letters.
+            stock_history = check_table_append_compatibility(latest_date, ticker.stock_history)  # Filter stock history to ensure no overlapping dates in postgreSQL table.
             # Skip add_data if stock history table is empty.
             if not stock_history.empty:
                 stock_history.to_sql(
