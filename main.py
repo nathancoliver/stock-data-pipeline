@@ -127,11 +127,14 @@ if market_day:
         latest_sector_shares = sector.create_sector_shares_dataframe(todays_date)  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
         latest_sector_shares.columns = [f"{column}_shares" for column in latest_sector_shares]
         sector.old_tickers = [column.replace("_shares", "") for column in sector.sector_shares_df.columns if column not in latest_sector_shares.columns]
+        if sector.old_tickers:
+            sector.sector_shares_df.drop(labels=[f"{ticker}_shares" for ticker in sector.old_tickers], axis=1, inplace=True)
+        tickers_in_sector = [ticker_shares.replace("_shares", "") for ticker_shares in set(latest_sector_shares.columns)]
         sector_weights_dtypes = {"date": sqlalchemy.types.Date}
         sector_weights_dtypes_strings = {
             "date": DataTypes.DATE,
         }
-        for ticker_symbol in tickers_in_sector + sector.old_tickers:
+        for ticker_symbol in tickers_in_sector:
             ticker_object = Ticker(ticker_symbol, postgresql_connection)
             sector.add_ticker(ticker_object)
             tickers.add_ticker(ticker_symbol, ticker_object)
