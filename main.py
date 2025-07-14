@@ -90,6 +90,8 @@ tickers = Tickers()
 todays_date = get_todays_date()
 market_day = get_market_day(todays_date)
 
+print(f"todays adjusted date {todays_date}")
+
 if market_day:
     for sector in sectors.sectors:
         print(f"Start scraping {sector.sector_symbol} sector info.")
@@ -159,6 +161,12 @@ if market_day:
         )
 
         latest_date = sector.get_s3_table_latest_date()
+        print(
+            f"sector: {sector.sector_symbol}",
+            f"today's date: {todays_date}",
+            f"latest_date: {latest_date}",
+            sep="\n",
+        )
         if todays_date > latest_date:  # TODO: If date is None, error. Need to fix, probably with If latest_date is None, elif ...
             sector.new_tickers = [column for column in latest_sector_shares.columns if column not in sector.sector_shares_df.columns]
             sector.add_missing_columns(
@@ -187,6 +195,7 @@ if market_day:
     for ticker in tickers.tickers.values():
         print(f"Start retrieve {ticker.ticker_symbol} stock history.")
         latest_date = ticker.get_stock_history_latest_date()  # Get latest date of stock history table.
+        print(f"{ticker.ticker_symbol}, latest date: {latest_date}")
         collect_stock_data = CollectDailyData(ticker.yfinance_ticker, latest_date=latest_date)  # initialize CollectDailyData class.
         ticker.stock_history = collect_stock_data.get_ticker_history()  # retrieve stock history pd.DataFrame.
         if ticker.stock_history is not None:
