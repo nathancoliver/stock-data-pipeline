@@ -12,6 +12,7 @@ class CollectDailyData:
         ticker,
         directory: Path = Path("."),
         save_as_feather: bool = False,
+        todays_date: pd.DatetimeIndex | None = None,
         latest_date: pd.DatetimeIndex | None = None,
     ):
         self.ticker = ticker
@@ -27,7 +28,7 @@ class CollectDailyData:
         self.save_as_feather = save_as_feather
         end_date = datetime.now()
         if latest_date is None:
-            start_date = end_date - pd.Timedelta(weeks=52 * 50)
+            start_date = todays_date
             self.update = False
         else:
             start_date = self.latest_date + pd.Timedelta(days=1)

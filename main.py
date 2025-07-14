@@ -196,7 +196,10 @@ if market_day:
         print(f"Start retrieve {ticker.ticker_symbol} stock history.")
         latest_date = ticker.get_stock_history_latest_date()  # Get latest date of stock history table.
         print(f"{ticker.ticker_symbol}, latest date: {latest_date}")
-        collect_stock_data = CollectDailyData(ticker.yfinance_ticker, latest_date=latest_date)  # initialize CollectDailyData class.
+        collect_stock_data = CollectDailyData(
+            ticker.yfinance_ticker,
+            todays_date=todays_date,
+        )  # initialize CollectDailyData class.
         ticker.stock_history = collect_stock_data.get_ticker_history()  # retrieve stock history pd.DataFrame.
         if ticker.stock_history is not None:
             ticker.stock_history.columns = [column.lower() for column in ticker.stock_history.columns]  # Set column names to all lower-case letters.
