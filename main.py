@@ -195,7 +195,7 @@ if market_day:
     for ticker in tickers.tickers.values():
         print(f"Start retrieve {ticker.ticker_symbol} stock history.")
         latest_date = ticker.get_stock_history_latest_date()  # Get latest date of stock history table.
-        print(f"{ticker.ticker_symbol}, latest date: {latest_date}")
+        print(f"{ticker.ticker_symbol}, latest date: {latest_date}, today's date: {todays_date}")
         collect_stock_data = CollectDailyData(
             ticker.yfinance_ticker,
             todays_date=todays_date,
