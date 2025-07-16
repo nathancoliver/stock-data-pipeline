@@ -88,7 +88,7 @@ class CollectDailyData:
                 stock_history = self.remove_time_zone_and_time_from_date(stock_history)
         else:
             stock_history = self._download_ticker_history(
-                self.end_date,
+                self.start_date,
                 self.end_date,  # TODO: Need to combine end_date and start_date into date.
             )
             if stock_history is not None:
