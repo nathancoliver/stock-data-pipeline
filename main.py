@@ -218,3 +218,5 @@ if market_day:
 
     for sector in sectors.sectors:
         sector.create_sector_history_table()
+
+    sectors.plot_graphs()

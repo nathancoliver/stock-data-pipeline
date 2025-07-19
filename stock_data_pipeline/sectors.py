@@ -1,4 +1,5 @@
 from pathlib import Path
+from plotly.graph_objects import Figure, Scatter
 from typing import List, Dict
 import pandas as pd  # type: ignore
 import sqlalchemy
@@ -123,6 +124,10 @@ class Sectors:
         elif magnitude == "B":
             return int(value * 10**9)
         else:
-            raise NameError(
-                f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
-            )
+    def plot_graphs(self):
+        figure = Figure()
+        for sector in self.sectors:
+            dates = sector.sector_history_df.index
+            sector_price = sector.sector_history_df[sector.sector_calculated_price_column_name]
+            figure.add_trace(Scatter(x=dates, y=sector_price))
+        figure.write_image("calculated_sector_prices.jpeg", format="jpeg")
