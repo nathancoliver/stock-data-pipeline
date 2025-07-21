@@ -1,5 +1,4 @@
 from pathlib import Path
-from plotly.graph_objects import Figure, Scatter
 from typing import List, Dict
 import pandas as pd  # type: ignore
 import sqlalchemy
