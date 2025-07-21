@@ -117,7 +117,10 @@ class Sector:
             s3_file_name=self.sector_history_s3_file_name,
             download_file_path=self.sector_history_download_file_path,
         )
-        self.sector_history_df.drop(labels=[f"{ticker}_price" for ticker in self.old_tickers], axis=1, inplace=True)
+        for old_ticker in self.old_tickers:
+            old_ticker_price = f"{old_ticker}_price"
+            if old_ticker_price in self.sector_history_df.columns:
+                self.sector_history_df.drop(labels=old_ticker_price, axis=1, inplace=True)
         sector_history_dtypes = {"date": sqlalchemy.DATE}
         sector_history_dtypes_strings = {
             "date": DataTypes.DATE,
