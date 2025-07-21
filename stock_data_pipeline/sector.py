@@ -6,7 +6,7 @@ from typing import List
 
 from bs4 import BeautifulSoup
 import pandas as pd  # type:ignore
-
+import sqlalchemy
 
 from .definitions import (
     SECTOR_SHARES_OUTSTANDING,
@@ -16,6 +16,7 @@ from .definitions import (
     TickerColumnType,
 )
 from .functions import (
+    convert_sql_data_type_into_string,
     get_latest_date,
     get_s3_table,
     make_ticker_sql_compatible,
@@ -69,9 +70,11 @@ class Sector:
         data_type_string: str,
         postgresql_connection: PostgreSQLConnection,
     ):
-        missing_columns = [f"{new_ticker}_{column_type.value}" for new_ticker in self.new_tickers]
-        for missing_column in missing_columns:
-            query = f"ALTER TABLE {sql_table_name} ADD COLUMN {missing_column} {data_type_string} NULL"
+        # missing_columns = [f"{new_ticker}_{column_type.value}" for new_ticker in self.new_tickers]
+        for missing_column in self.new_tickers:
+            if column_type.value not in missing_column:
+                missing_column += f"_{column_type.value}"
+            query = f"ALTER TABLE {sql_table_name} ADD COLUMN IF NOT EXISTS {missing_column} {data_type_string} NULL"
             postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
     def add_ticker(self, ticker_object: Ticker):
@@ -114,12 +117,33 @@ class Sector:
             s3_file_name=self.sector_history_s3_file_name,
             download_file_path=self.sector_history_download_file_path,
         )
+        self.sector_history_df.drop(labels=[f"{ticker}_price" for ticker in self.old_tickers], axis=1, inplace=True)
+        sector_history_dtypes = {"date": sqlalchemy.DATE}
+        sector_history_dtypes_strings = {
+            "date": DataTypes.DATE,
+        }
+        sector_history_dtypes.update({column: sqlalchemy.types.Numeric(10, 2) for column in self.sector_history_df.columns})
+        sector_history_dtypes_strings.update({column: DataTypes.NUMERIC_10_2 for column in self.sector_history_df.columns})
+        sector_history_dtypes_strings = convert_sql_data_type_into_string(sector_history_dtypes_strings)
+        query = f"DROP TABLE IF EXISTS {make_ticker_sql_compatible(self.sector_history_table_name)}"
+        self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+        query = f"CREATE TABLE IF NOT EXISTS {make_ticker_sql_compatible(self.sector_history_table_name)} ({sector_history_dtypes_strings})"
+        self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+        self.sector_history_df.to_sql(
+            make_ticker_sql_compatible(self.sector_history_table_name),
+            con=self.postgresql_connection.engine,
+            if_exists="append",
+            index=True,
+            index_label="date",
+            dtype=sector_history_dtypes,
+        )
         self.add_missing_columns(
             column_type=TickerColumnType.PRICE,
             sql_table_name=self.sector_history_table_name,
             data_type_string=DataTypes.INT,
             postgresql_connection=self.postgresql_connection,
         )
+        self.tickers = self.tickers
         first_ticker = self.tickers[0]
         first_ticker_table_name = first_ticker.table_name
         first_ticker_price_column = first_ticker.price_column_name
@@ -134,10 +158,6 @@ class Sector:
             join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
         order_by_query = f" ORDER BY {first_ticker_table_name}.date ASC"
         query = table_name_query + select_query + column_query + from_query + join_query + order_by_query
-        self.postgresql_connection.execute_query(
-            f"DROP TABLE IF EXISTS {self.sector_history_table_name}",
-            operation=SQLOperation.COMMIT,
-        )  # TODO: remove this operation to append data to existing table
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
         self.calculate_sector_price()
