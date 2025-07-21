@@ -177,7 +177,6 @@ if market_day:
             sep="\n",
         )
         if todays_date > latest_date:  # TODO: If date is None, error. Need to fix, probably with If latest_date is None, elif ...
-            # sector.new_tickers = [column for column in latest_sector_shares.columns if column not in sector.sector_shares_df.columns]
             sector.add_missing_columns(
                 column_type=TickerColumnType.SHARES,
                 sql_table_name=sector.sector_shares_table_name,
@@ -187,7 +186,7 @@ if market_day:
             latest_sector_shares.to_sql(
                 make_ticker_sql_compatible(sector.sector_shares_table_name),
                 con=postgresql_connection.engine,
-                if_exists="append",  # TODO: need to figure out why append does not currently work. Should be able to take one row sector shares df and append to SQL table.
+                if_exists="append",
                 index=True,
                 index_label="date",
                 dtype=sector_weights_dtypes,
@@ -196,7 +195,6 @@ if market_day:
                 sector.sector_shares_table_name,
                 sector.postgresql_connection,
             )
-            # TODO: Need a process to upload latest dataframe to S3.
 
     sectors.create_shares_outstanding_table()
 
