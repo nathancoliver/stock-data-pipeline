@@ -121,22 +121,31 @@ if market_day:
         operation=SQLOperation.COMMIT,
     )
     for sector in sectors.sectors:
+        if sector.sector_symbol == "xlc":
+            print()
         sector.sector_shares_df = get_s3_table(
             sector.s3_connection,
             s3_file_name=sector.sector_shares_s3_file_name,
             download_file_path=sector.sector_shares_download_file_path,
         )  # Download S3 table and create Pandas table TODO: Need to return None if CSV table in S3 does not exist.
-        latest_sector_shares = sector.create_sector_shares_dataframe(todays_date)  # TODO: I believe this creates a one row dataframe of sector shares, need to confirm.
+        sector.sector_shares_df.drop(columns=[column for column in sector.sector_shares_df if "_shares_shares" in column], inplace=True)
+        original_tickers = [column.replace("_shares", "", count=-1) for column in sector.sector_shares_df.columns]
+
+        latest_sector_shares = sector.create_sector_shares_dataframe(todays_date)
         latest_sector_shares.columns = [f"{column}_shares" for column in latest_sector_shares]
-        sector.old_tickers = [column.replace("_shares", "") for column in sector.sector_shares_df.columns if column not in latest_sector_shares.columns]
+        latest_tickers = [column.replace("_shares", "", count=-1) for column in latest_sector_shares.columns]
+        sector.old_tickers = [column.replace("_shares", "", count=-1) for column in sector.sector_shares_df.columns if column not in latest_sector_shares.columns]
         if sector.old_tickers:
             sector.sector_shares_df.drop(labels=[f"{ticker}_shares" for ticker in sector.old_tickers], axis=1, inplace=True)
-        tickers_in_sector = [ticker_shares.replace("_shares", "") for ticker_shares in set(latest_sector_shares.columns)]
+
         sector_weights_dtypes = {"date": sqlalchemy.types.Date}
         sector_weights_dtypes_strings = {
             "date": DataTypes.DATE,
         }
-        for ticker_symbol in tickers_in_sector:
+        sector.get_new_tickers(original_tickers=original_tickers, latest_tickers=latest_tickers)
+        tickers_in_sector = [ticker_shares.replace("_shares", "", count=-1) for ticker_shares in set(latest_sector_shares.columns)]
+        tickers_in_sector.extend(sector.new_tickers)
+        for ticker_symbol in set(tickers_in_sector):
             ticker_object = Ticker(ticker_symbol, postgresql_connection)
             sector.add_ticker(ticker_object)
             tickers.add_ticker(ticker_symbol, ticker_object)
@@ -168,7 +177,6 @@ if market_day:
             sep="\n",
         )
         if todays_date > latest_date:  # TODO: If date is None, error. Need to fix, probably with If latest_date is None, elif ...
-            sector.new_tickers = [column for column in latest_sector_shares.columns if column not in sector.sector_shares_df.columns]
             sector.add_missing_columns(
                 column_type=TickerColumnType.SHARES,
                 sql_table_name=sector.sector_shares_table_name,
@@ -178,7 +186,7 @@ if market_day:
             latest_sector_shares.to_sql(
                 make_ticker_sql_compatible(sector.sector_shares_table_name),
                 con=postgresql_connection.engine,
-                if_exists="append",  # TODO: need to figure out why append does not currently work. Should be able to take one row sector shares df and append to SQL table.
+                if_exists="append",
                 index=True,
                 index_label="date",
                 dtype=sector_weights_dtypes,
@@ -187,7 +195,6 @@ if market_day:
                 sector.sector_shares_table_name,
                 sector.postgresql_connection,
             )
-            # TODO: Need a process to upload latest dataframe to S3.
 
     sectors.create_shares_outstanding_table()
 

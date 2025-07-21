@@ -28,12 +28,8 @@ class Sectors:
             "sector": [],
             "shares_outstanding": [],
         }
-        self.sector_shares_outstanding_dtypes: Dict[str, sqlalchemy.types] = {
-            "date": sqlalchemy.types.Date
-        }
-        self.sector_shares_outstanding_dtypes_strings: Dict[str, str] = {
-            "date": DataTypes.DATE
-        }
+        self.sector_shares_outstanding_dtypes: Dict[str, sqlalchemy.types] = {"date": sqlalchemy.types.Date}
+        self.sector_shares_outstanding_dtypes_strings: Dict[str, str] = {"date": DataTypes.DATE}
         self.sector_shares_directory = Path("sector_shares")
         self.sector_shares_outstanding_s3_file_name = f"{SECTOR_SHARES_OUTSTANDING}.csv"
         self.sector_shares_outstanding_s3_download_path = Path(
@@ -54,12 +50,8 @@ class Sectors:
                     sector_shares_directory=self.sector_shares_directory,
                 )
                 self.sectors.append(sector)
-                self.sector_shares_outstanding_dtypes.update(
-                    {sector.sector_symbol: sqlalchemy.types.BigInteger}
-                )
-                self.sector_shares_outstanding_dtypes_strings.update(
-                    {sector.sector_symbol: DataTypes.BIGINT}
-                )
+                self.sector_shares_outstanding_dtypes.update({sector.sector_symbol: sqlalchemy.types.BigInteger})
+                self.sector_shares_outstanding_dtypes_strings.update({sector.sector_symbol: DataTypes.BIGINT})
 
     def append_shares_outstanding_dict(self, sector: Sector, shares_outstanding: int):
         self.shares_outstanding["sector"].append(sector.sector_symbol)
@@ -81,26 +73,20 @@ class Sectors:
         # TODO: initilalize sql table (create table if exists ...)
         # TODO: create a row of shares outstanding and add row to existing sql tables
         todays_date = get_todays_date()
-        latest_date = get_sql_table_latest_date(
-            SECTOR_SHARES_OUTSTANDING, self.postgresql_connection.engine
-        )
+        latest_date = get_sql_table_latest_date(SECTOR_SHARES_OUTSTANDING, self.postgresql_connection.engine)
         shares_outstanding = {"date": [todays_date]}
         shares_outstanding_dtypes = {
             "date": sqlalchemy.DATE,
         }
         for sector in self.sectors:
-            shares_outstanding.update(
-                {sector.sector_symbol: [sector.shares_outstanding]}
-            )
+            shares_outstanding.update({sector.sector_symbol: [sector.shares_outstanding]})
             shares_outstanding_dtypes.update(
                 {
                     sector.sector_symbol: sqlalchemy.types.BigInteger,
                 }
             )
         if latest_date is None:
-            set_table_primary_key(
-                SECTOR_SHARES_OUTSTANDING, "date", self.postgresql_connection
-            )
+            set_table_primary_key(SECTOR_SHARES_OUTSTANDING, "date", self.postgresql_connection)
         elif todays_date > latest_date:
             pd.DataFrame(shares_outstanding).set_index("date").to_sql(
                 SECTOR_SHARES_OUTSTANDING,
@@ -123,6 +109,4 @@ class Sectors:
         elif magnitude == "B":
             return int(value * 10**9)
         else:
-            raise NameError(
-                f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
-            )
+            raise NameError(f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func.")
