@@ -134,7 +134,9 @@ if market_day:
         latest_sector_shares = sector.create_sector_shares_dataframe(todays_date)
         latest_sector_shares.columns = [f"{column}_shares" for column in latest_sector_shares]
         latest_tickers = [column.replace("_shares", "", count=-1) for column in latest_sector_shares.columns]
-        sector.old_tickers = [column.replace("_shares", "", count=-1) for column in sector.sector_shares_df.columns if column not in latest_sector_shares.columns]
+        sector.old_tickers = [
+            column.replace("_shares", "", count=-1) for column in sector.sector_shares_df.columns if column not in latest_sector_shares.columns
+        ]
         if sector.old_tickers:
             sector.sector_shares_df.drop(labels=[f"{ticker}_shares" for ticker in sector.old_tickers], axis=1, inplace=True)
 
@@ -149,7 +151,9 @@ if market_day:
             ticker_object = Ticker(ticker_symbol, postgresql_connection)
             sector.add_ticker(ticker_object)
             tickers.add_ticker(ticker_symbol, ticker_object)
-            sector_weights_dtypes.update({ticker_object.shares_column_name: sqlalchemy.types.BigInteger})  # TODO: Move this to Sector class, specifically init function and add_ticker func.
+            sector_weights_dtypes.update(
+                {ticker_object.shares_column_name: sqlalchemy.types.BigInteger}
+            )  # TODO: Move this to Sector class, specifically init function and add_ticker func.
             sector_weights_dtypes_strings.update(
                 {
                     ticker_object.shares_column_name: DataTypes.BIGINT,
@@ -211,7 +215,10 @@ if market_day:
         if ticker.stock_history is not None:
             ticker.stock_history.columns = [column.lower() for column in ticker.stock_history.columns]  # Set column names to all lower-case letters.
             ticker.stock_history.index.name = ticker.stock_history.index.name.lower()  # Set date index to lower-case letters.
-            stock_history = check_table_append_compatibility(latest_date, ticker.stock_history)  # Filter stock history to ensure no overlapping dates in postgreSQL table.
+            ticker.price = float(ticker.stock_history.loc[todays_date.strftime("%Y-%m-%d"), "close"])
+            stock_history = check_table_append_compatibility(
+                latest_date, ticker.stock_history
+            )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
             # Skip add_data if stock history table is empty.
             if not stock_history.empty:
                 stock_history.to_sql(
@@ -224,4 +231,4 @@ if market_day:
                 )  # Append data to stock history table.
 
     for sector in sectors.sectors:
-        sector.create_sector_history_table()
+        sector.create_sector_history_table(todays_date.strftime("%Y-%m-%d"))

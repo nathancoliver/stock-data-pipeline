@@ -50,7 +50,9 @@ class Sector:
         self.sector_calculated_price_column_name = f"{self.sector_symbol}_calculated_price"
         self.shares_outstanding: None | int = None
         self.url_shares_outstanding = f"https://www.ssga.com/us/en/institutional/etfs/the-materials-select-sector-spdr-fund-{self.sector_symbol}"
-        self.url_xlsx = f"https://www.ssga.com/us/en/institutional/library-content/products/fund-data/etfs/us/holdings-daily-us-en-{self.sector_symbol}.xlsx"
+        self.url_xlsx = (
+            f"https://www.ssga.com/us/en/institutional/library-content/products/fund-data/etfs/us/holdings-daily-us-en-{self.sector_symbol}.xlsx"
+        )
         self.portfolio_holdings_file_path: Path = Path(
             STOCK_WEIGHT_DIRECTORY,
             f"holdings-daily-us-en-{self.sector_symbol}.xlsx",
@@ -93,11 +95,13 @@ class Sector:
         set_query = f"SET {self.sector_calculated_price_column_name} = "
         calculation_queries = []
         for ticker in self.tickers:
-            calculation_queries.append(f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.shares_column_name}")
+            calculation_queries.append(
+                f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.shares_column_name}"
+            )
         calculation_query = f"""{" ( " + " + ".join(calculation_queries) + " ) "} / {SECTOR_SHARES_OUTSTANDING}.{self.sector_symbol}"""
         from_query = f"FROM {SECTOR_SHARES_OUTSTANDING}"
         join_query = f"JOIN {self.sector_shares_table_name} on {self.sector_shares_table_name}.date = {SECTOR_SHARES_OUTSTANDING}.date"
-        where_query = f"WHERE {self.sector_shares_table_name}.date = {self.sector_history_table_name}.date"
+        where_query = f"WHERE {self.sector_shares_table_name}.date = {self.sector_history_table_name}.date AND {self.sector_history_table_name}.{self.sector_calculated_price_column_name} IS NULL"
 
         query = " ".join(
             [
@@ -111,12 +115,13 @@ class Sector:
         )
         self.postgresql_connection.execute_query(query, SQLOperation.COMMIT)
 
-    def create_sector_history_table(self):
+    def create_sector_history_table(self, todays_date):
         self.sector_history_df = get_s3_table(
             self.s3_connection,
             s3_file_name=self.sector_history_s3_file_name,
             download_file_path=self.sector_history_download_file_path,
         )
+        self.sector_history_df.index.name = "date"
         for old_ticker in self.old_tickers:
             old_ticker_price = f"{old_ticker}_price"
             if old_ticker_price in self.sector_history_df.columns:
@@ -132,36 +137,18 @@ class Sector:
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
         query = f"CREATE TABLE IF NOT EXISTS {make_ticker_sql_compatible(self.sector_history_table_name)} ({sector_history_dtypes_strings})"
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
+
+        self.sector_history_df.loc[todays_date, :] = None
+        for ticker in self.tickers:
+            self.sector_history_df.loc[todays_date, f"{ticker.ticker_symbol}_price"] = ticker.price  # TODO: Convert numpy float to float
         self.sector_history_df.to_sql(
             make_ticker_sql_compatible(self.sector_history_table_name),
             con=self.postgresql_connection.engine,
-            if_exists="append",
+            if_exists="replace",
             index=True,
             index_label="date",
             dtype=sector_history_dtypes,
         )
-        self.add_missing_columns(
-            column_type=TickerColumnType.PRICE,
-            sql_table_name=self.sector_history_table_name,
-            data_type_string=DataTypes.INT,
-            postgresql_connection=self.postgresql_connection,
-        )
-        self.tickers = self.tickers
-        first_ticker = self.tickers[0]
-        first_ticker_table_name = first_ticker.table_name
-        first_ticker_price_column = first_ticker.price_column_name
-        table_name_query = f"CREATE TABLE IF NOT EXISTS {self.sector_history_table_name} as"
-        select_query = f" SELECT {first_ticker_table_name}.date as date"
-        column_query = f", {first_ticker_table_name}.close as {first_ticker_price_column}"
-        from_query = f" FROM {first_ticker_table_name}"
-        join_query = ""
-        for ticker in self.tickers[1:]:
-            ticker_table_name = ticker.table_name
-            column_query += f", {ticker_table_name}.close as {ticker.price_column_name}"
-            join_query += f" JOIN {ticker_table_name} ON {first_ticker_table_name}.date = {ticker_table_name}.date"
-        order_by_query = f" ORDER BY {first_ticker_table_name}.date ASC"
-        query = table_name_query + select_query + column_query + from_query + join_query + order_by_query
-        self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
 
         self.calculate_sector_price()
         self.s3_connection.upload_sql_table(
