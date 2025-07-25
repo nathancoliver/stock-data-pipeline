@@ -211,7 +211,10 @@ if market_day:
         if ticker.stock_history is not None:
             ticker.stock_history.columns = [column.lower() for column in ticker.stock_history.columns]  # Set column names to all lower-case letters.
             ticker.stock_history.index.name = ticker.stock_history.index.name.lower()  # Set date index to lower-case letters.
-            stock_history = check_table_append_compatibility(latest_date, ticker.stock_history)  # Filter stock history to ensure no overlapping dates in postgreSQL table.
+            ticker.price = float(ticker.stock_history.loc[todays_date.strftime("%Y-%m-%d"), "close"])
+            stock_history = check_table_append_compatibility(
+                latest_date, ticker.stock_history
+            )  # Filter stock history to ensure no overlapping dates in postgreSQL table.
             # Skip add_data if stock history table is empty.
             if not stock_history.empty:
                 stock_history.to_sql(
@@ -224,4 +227,4 @@ if market_day:
                 )  # Append data to stock history table.
 
     for sector in sectors.sectors:
-        sector.create_sector_history_table()
+        sector.create_sector_history_table(todays_date.strftime("%Y-%m-%d"))

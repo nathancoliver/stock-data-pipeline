@@ -19,6 +19,7 @@ class Ticker:
         self.shares_column_name = f"{self.ticker_symbol}_shares"
         self.postgresql_connection = postgresql_connection
         self.stock_history = pd.DataFrame()
+        self.price: float | None = None
 
         query = f"CREATE TABLE IF NOT EXISTS {self.table_name} (date DATE PRIMARY KEY,open NUMERIC(10, 2),high NUMERIC(10, 2),low NUMERIC(10, 2),close NUMERIC(10, 2),volume BIGINT)"
         self.postgresql_connection.execute_query(query, operation=SQLOperation.COMMIT)
