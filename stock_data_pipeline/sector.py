@@ -50,7 +50,9 @@ class Sector:
         self.sector_calculated_price_column_name = f"{self.sector_symbol}_calculated_price"
         self.shares_outstanding: None | int = None
         self.url_shares_outstanding = f"https://www.ssga.com/us/en/institutional/etfs/the-materials-select-sector-spdr-fund-{self.sector_symbol}"
-        self.url_xlsx = f"https://www.ssga.com/us/en/institutional/library-content/products/fund-data/etfs/us/holdings-daily-us-en-{self.sector_symbol}.xlsx"
+        self.url_xlsx = (
+            f"https://www.ssga.com/us/en/institutional/library-content/products/fund-data/etfs/us/holdings-daily-us-en-{self.sector_symbol}.xlsx"
+        )
         self.portfolio_holdings_file_path: Path = Path(
             STOCK_WEIGHT_DIRECTORY,
             f"holdings-daily-us-en-{self.sector_symbol}.xlsx",
@@ -93,7 +95,9 @@ class Sector:
         set_query = f"SET {self.sector_calculated_price_column_name} = "
         calculation_queries = []
         for ticker in self.tickers:
-            calculation_queries.append(f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.shares_column_name}")
+            calculation_queries.append(
+                f"{self.sector_history_table_name}.{ticker.price_column_name} * {self.sector_shares_table_name}.{ticker.shares_column_name}"
+            )
         calculation_query = f"""{" ( " + " + ".join(calculation_queries) + " ) "} / {SECTOR_SHARES_OUTSTANDING}.{self.sector_symbol}"""
         from_query = f"FROM {SECTOR_SHARES_OUTSTANDING}"
         join_query = f"JOIN {self.sector_shares_table_name} on {self.sector_shares_table_name}.date = {SECTOR_SHARES_OUTSTANDING}.date"

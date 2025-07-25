@@ -10,7 +10,6 @@ from .postgresql_connection import PostgreSQLConnection
 
 
 class Ticker:
-
     def __init__(self, ticker: str, postgresql_connection: PostgreSQLConnection):
         self.ticker_symbol = make_ticker_sql_compatible(ticker)
         self.yfinance_ticker = make_ticker_yfinance_compatible(ticker)
@@ -28,7 +27,5 @@ class Ticker:
         """Get most recent date from stock history. If no stock history, return None."""
 
         query = f"SELECT MAX(DATE) FROM {self.table_name}"
-        cursor = self.postgresql_connection.execute_query(
-            query, operation=SQLOperation.EXECUTE
-        )
+        cursor = self.postgresql_connection.execute_query(query, operation=SQLOperation.EXECUTE)
         return cursor.fetchone()[0]
