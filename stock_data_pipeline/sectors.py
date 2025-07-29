@@ -1,3 +1,5 @@
+from re import sub
+
 from pathlib import Path
 from typing import List, Dict
 import pandas as pd  # type: ignore
@@ -103,10 +105,12 @@ class Sectors:
 
     def convert_shares_outstanding(self, shares_outstanding: str) -> int:
         magnitude = shares_outstanding.rstrip(" ")[-1].upper()
-        value = float(shares_outstanding.rstrip(magnitude).strip(" "))
+        value = float(sub(r"[,\s]", "", shares_outstanding.rstrip(magnitude)))
         if magnitude == "M":
             return int(value * 10**6)
         elif magnitude == "B":
             return int(value * 10**9)
         else:
-            raise NameError(f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func.")
+            raise NameError(
+                f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
+            )
