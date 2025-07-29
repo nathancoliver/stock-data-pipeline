@@ -131,7 +131,7 @@ class Sectors:
                 f"magnitude {magnitude} from shares_outstanding is not compatible with func convert_shares_outstanding. Consider editing func."
             )
 
-    def plot_graphs(self) -> None:
+    def plot_graphs(self, plot_directory: str | Path) -> None:
         figure = Figure()
         range_break = False
         range_break_dates: List[pd.DatetimeIndex] = []
@@ -153,7 +153,7 @@ class Sectors:
                 range_break_dates = [date for date in new_dates if date not in list(dates)]
                 range_break = True
         figure = self.update_layout(figure, date_range_breaks=range_break_dates, x_min=x_min, x_max=x_max)
-        figure.write_image("calculated_sector_prices.jpeg", format="jpeg", scale=5, engine="kaleido")
+        figure.write_image(Path(plot_directory, "calculated_sector_prices.jpeg"), format="jpeg", scale=5, engine="kaleido")
 
     def update_layout(self, figure: Figure, date_range_breaks: List[pd.DatetimeIndex], x_min: str, x_max: str) -> Figure:
         Y_AXIS_TICK_FORMAT = ".4"

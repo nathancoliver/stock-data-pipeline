@@ -233,4 +233,4 @@ if market_day:
     for sector in sectors.sectors:
         sector.create_sector_history_table(todays_date.strftime("%Y-%m-%d"))
 
-    sectors.plot_graphs()
+    sectors.plot_graphs(DATA_DIRECTORY)
