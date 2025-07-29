@@ -18,6 +18,7 @@ pyarrow = "*"
 python = "^3.11"
 selenium = "*"
 yfinance = {git = "https://github.com/ranaroussi/yfinance.git@fix/cookie-reuse"}# "0.2.54" # Use version 0.2.54 and sha fa3094daedf4a69e8af542e4bb171cbd3bd61862 if needed
+kaleido = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 doit = "0.36.0"
