@@ -2,7 +2,6 @@
 Download stock data from Yahoo Finance, transform data in SQL, and upload data to AWS.
 """
 
-import os
 from pathlib import Path
 import time
 from typing import Dict
