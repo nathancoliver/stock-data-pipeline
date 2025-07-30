@@ -86,7 +86,11 @@ jobs:
       if: false # Remove if: false statement once test section has been developed
       run: |
         pytest
-    - name: Upload plots to repo
-      uses: softprops/action-gh-release@v2
-      with:
-        files: data/
+    - name: Create data directory
+      run: |
+        mkdir -p data
+    - name: Add data directory
+      run: |
+        git add data/
+        git commit -m "Add latest data directory via Github Actions."
+        git push origin ${{ github.ref }}
