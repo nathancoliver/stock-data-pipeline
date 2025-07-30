@@ -86,3 +86,7 @@ jobs:
       if: false # Remove if: false statement once test section has been developed
       run: |
         pytest
+    - name: Upload plots to repo
+      uses: softprops/action-gh-release@v2
+      with:
+        files: data/
