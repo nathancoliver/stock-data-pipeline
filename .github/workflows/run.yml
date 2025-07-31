@@ -96,4 +96,4 @@ jobs:
         git config --global user.email '67498426+nathancoliver@users.noreply.github.com'
         git add data/
         git commit -m "Add latest data directory via Github Actions."
-        git push origin ${{ github.ref }}
+        git push origin plot-results
