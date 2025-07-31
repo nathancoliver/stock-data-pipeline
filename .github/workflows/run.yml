@@ -51,7 +51,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        ref: plot-results  # explicitly check out your real branch
+        ref: main  # explicitly check out your real branch
         fetch-depth: 0     # needed to create a commit
     - name: Install dependencies
       run: |
@@ -103,4 +103,4 @@ jobs:
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
         git add data/
         git commit -m "Add latest data directory via Github Actions." || echo "No changes to commit"
-        git push origin plot-results
+        git push origin main
