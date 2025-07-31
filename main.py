@@ -2,7 +2,6 @@
 Download stock data from Yahoo Finance, transform data in SQL, and upload data to AWS.
 """
 
-import os
 from pathlib import Path
 import time
 from typing import Dict
@@ -232,3 +231,5 @@ if market_day:
 
     for sector in sectors.sectors:
         sector.create_sector_history_table(todays_date.strftime("%Y-%m-%d"))
+
+    sectors.plot_graphs(DATA_DIRECTORY)
