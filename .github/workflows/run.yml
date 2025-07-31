@@ -100,6 +100,7 @@ jobs:
       run: |
         git config --global user.name 'nathancoliver'
         git config --global user.email '67498426+nathancoliver@users.noreply.github.com'
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
         git add data/
         git commit -m "Add latest data directory via Github Actions." || echo "No changes to commit"
         git push origin plot-results
