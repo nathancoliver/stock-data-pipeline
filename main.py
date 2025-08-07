@@ -231,3 +231,4 @@ if market_day:
         sector.create_sector_history_table(todays_date.strftime("%Y-%m-%d"))
 
     sectors.plot_graphs(DATA_DIRECTORY)
+    sectors.plot_percent_difference_graphs(DATA_DIRECTORY, days=5)

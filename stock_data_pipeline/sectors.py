@@ -2,7 +2,7 @@ from re import sub
 
 from pathlib import Path
 from plotly.graph_objects import Figure, Scatter
-from typing import List, Dict
+from typing import Dict, List
 import pandas as pd  # type: ignore
 import sqlalchemy
 
@@ -135,25 +135,76 @@ class Sectors:
         figure = Figure()
         range_break = False
         range_break_dates: List[pd.DatetimeIndex] = []
+        x_min: str = ""
+        x_max: str = ""
         for sector in self.sectors:
             dates = list(sector.sector_history_df.index)
-            sector_price = sector.sector_history_df[sector.sector_calculated_price_column_name]
+            sector_prices = sector.sector_history_df[sector.sector_calculated_price_column_name]
             figure.add_trace(
                 Scatter(
-                    x=dates, y=sector_price, marker={"color": sector_color_map[sector.sector_symbol]}, mode="lines", name=sector.sector_symbol.upper()
+                    x=dates,
+                    y=sector_prices,
+                    marker={"color": sector_color_map[sector.sector_symbol]},
+                    mode="lines",
+                    name=sector.sector_symbol.upper(),
                 )
             )
             if not range_break:
-                first_date = dates[0]
-                last_date = dates[-1]
-                date_range = pd.date_range(start=first_date, end=last_date, freq="D")
-                x_min = str(date_range[0] - pd.DateOffset(days=1)).replace(" 00:00:00", "")
-                x_max = str(date_range[-1]).replace(" 00:00:00", "")
-                new_dates = [str(date).replace(" 00:00:00", "") for date in date_range]
-                range_break_dates = [date for date in new_dates if date not in list(dates)]
+                date_range = self._add_date_range(dates)
+                x_min, x_max = self._get_date_limits(date_range)
+                range_break_dates = self._add_range_break_dates(dates, date_range)
                 range_break = True
         figure = self.update_layout(figure, date_range_breaks=range_break_dates, x_min=x_min, x_max=x_max)
         figure.write_image(Path(plot_directory, "calculated_sector_prices.jpeg"), format="jpeg", scale=5, engine="kaleido")
+
+    def plot_percent_difference_graphs(self, plot_directory: str | Path, days: int) -> None:
+        figure = Figure()
+        range_break = False
+        range_break_dates: List[pd.DatetimeIndex] = []
+        x_min: str = ""
+        x_max: str = ""
+        for sector in self.sectors:
+            if len(sector.sector_history_df) < days:
+                continue
+            dates = list(sector.sector_history_df.index[-days:])
+            sector_prices = sector.sector_history_df[sector.sector_calculated_price_column_name][-days:]
+            start_sector_price = sector_prices[0]
+            if start_sector_price is None:
+                continue
+            percent_sector_prices = [(sector_price - start_sector_price) / start_sector_price for sector_price in sector_prices]
+            figure.add_trace(
+                Scatter(
+                    x=dates,
+                    y=percent_sector_prices,
+                    marker={"color": sector_color_map[sector.sector_symbol]},
+                    mode="lines",
+                    name=sector.sector_symbol.upper(),
+                )
+            )
+            if not range_break:
+                date_range = self._add_date_range(dates)
+                x_min, x_max = self._get_date_limits(date_range)
+                range_break_dates = self._add_range_break_dates(dates, date_range)
+                range_break = True
+        figure = self.update_layout(figure, date_range_breaks=range_break_dates, x_min=x_min, x_max=x_max)
+        figure.write_image(Path(plot_directory, f"percent_sector_prices_{days}_days.jpeg"), format="jpeg", scale=5, engine="kaleido")
+
+    @staticmethod
+    def _add_date_range(dates: pd.DatetimeIndex):
+        first_date = dates[0]
+        last_date = dates[-1]
+        return pd.date_range(start=first_date, end=last_date, freq="D")
+
+    @staticmethod
+    def _get_date_limits(date_range: pd.DatetimeIndex) -> tuple[str, str]:
+        x_min = str(date_range[0] - pd.DateOffset(days=1)).replace(" 00:00:00", "")
+        x_max = str(date_range[-1]).replace(" 00:00:00", "")
+        return x_min, x_max
+
+    @staticmethod
+    def _add_range_break_dates(dates: pd.DatetimeIndex, date_range: pd.DatetimeIndex) -> pd.DatetimeIndex:
+        new_dates = [str(date).replace(" 00:00:00", "") for date in date_range]
+        return [date for date in new_dates if date not in list(dates)]
 
     def update_layout(self, figure: Figure, date_range_breaks: List[pd.DatetimeIndex], x_min: str, x_max: str) -> Figure:
         Y_AXIS_TICK_FORMAT = ".4"
