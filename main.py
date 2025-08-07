@@ -120,13 +120,11 @@ if market_day:
         operation=SQLOperation.COMMIT,
     )
     for sector in sectors.sectors:
-        if sector.sector_symbol == "xlc":
-            print()
         sector.sector_shares_df = get_s3_table(
             sector.s3_connection,
             s3_file_name=sector.sector_shares_s3_file_name,
             download_file_path=sector.sector_shares_download_file_path,
-        )  # Download S3 table and create Pandas table TODO: Need to return None if CSV table in S3 does not exist.
+        )  # Download S3 table and create Pandas table
         sector.sector_shares_df.drop(columns=[column for column in sector.sector_shares_df if "_shares_shares" in column], inplace=True)
         original_tickers = [column.replace("_shares", "", count=-1) for column in sector.sector_shares_df.columns]
 
