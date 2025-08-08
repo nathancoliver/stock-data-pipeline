@@ -147,15 +147,14 @@ class Sectors:
                 first_date = dates[0]
                 last_date = dates[-1]
                 date_range = pd.date_range(start=first_date, end=last_date, freq="D")
-                x_min = str(date_range[0] - pd.DateOffset(days=1)).replace(" 00:00:00", "")
-                x_max = str(date_range[-1]).replace(" 00:00:00", "")
-                new_dates = [str(date).replace(" 00:00:00", "") for date in date_range]
-                range_break_dates = [date for date in new_dates if date not in list(dates)]
+                x_min = date_range[0] - pd.DateOffset(days=1)
+                x_max = date_range[-1] + pd.DateOffset(days=1)
+                range_break_dates = [date for date in date_range if date not in dates]
                 range_break = True
         figure = self.update_layout(figure, date_range_breaks=range_break_dates, x_min=x_min, x_max=x_max)
         figure.write_image(Path(plot_directory, "calculated_sector_prices.jpeg"), format="jpeg", scale=5, engine="kaleido")
 
-    def update_layout(self, figure: Figure, date_range_breaks: List[pd.DatetimeIndex], x_min: str, x_max: str) -> Figure:
+    def update_layout(self, figure: Figure, date_range_breaks: List[pd.DatetimeIndex], x_min: pd.Timestamp, x_max: pd.Timestamp) -> Figure:
         Y_AXIS_TICK_FORMAT = ".4"
         GRID_LINES_COLOR = "rgba(128,128,128,0.3)"
         GRID_LINE_WIDTH = 1.5
