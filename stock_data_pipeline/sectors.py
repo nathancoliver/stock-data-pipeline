@@ -153,6 +153,11 @@ class Sectors:
                 date_range = self._add_date_range(dates)
                 x_min, x_max = self._get_date_limits(date_range)
                 range_break_dates = self._add_range_break_dates(dates, date_range)
+
+                x_min = date_range[0] - pd.DateOffset(days=1)
+                x_max = date_range[-1] + pd.DateOffset(days=1)
+                range_break_dates = [date for date in date_range if date not in dates]
+
                 range_break = True
         figure = self.update_layout(figure, date_range_breaks=range_break_dates, x_min=x_min, x_max=x_max)
         figure.write_image(Path(plot_directory, "calculated_sector_prices.jpeg"), format="jpeg", scale=5, engine="kaleido")
@@ -196,17 +201,16 @@ class Sectors:
         return pd.date_range(start=first_date, end=last_date, freq="D")
 
     @staticmethod
-    def _get_date_limits(date_range: pd.DatetimeIndex) -> tuple[str, str]:
-        x_min = str(date_range[0] - pd.DateOffset(days=1)).replace(" 00:00:00", "")
-        x_max = str(date_range[-1]).replace(" 00:00:00", "")
+    def _get_date_limits(date_range: pd.DatetimeIndex) -> tuple[pd.Timestamp, pd.Timestamp]:
+        x_min = date_range[0] - pd.DateOffset(days=1)
+        x_max = date_range[-1] + pd.DateOffset(days=1)
         return x_min, x_max
 
     @staticmethod
     def _add_range_break_dates(dates: pd.DatetimeIndex, date_range: pd.DatetimeIndex) -> pd.DatetimeIndex:
-        new_dates = [str(date).replace(" 00:00:00", "") for date in date_range]
-        return [date for date in new_dates if date not in list(dates)]
+        return [date for date in date_range if date not in dates]
 
-    def update_layout(self, figure: Figure, date_range_breaks: List[pd.DatetimeIndex], x_min: str, x_max: str) -> Figure:
+    def update_layout(self, figure: Figure, date_range_breaks: List[pd.DatetimeIndex], x_min: pd.Timestamp, x_max: pd.Timestamp) -> Figure:
         Y_AXIS_TICK_FORMAT = ".4"
         GRID_LINES_COLOR = "rgba(128,128,128,0.3)"
         GRID_LINE_WIDTH = 1.5
