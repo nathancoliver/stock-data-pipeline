@@ -145,7 +145,7 @@ class Sector:
         )
 
         self.calculate_sector_price()
-        self.sector_history_df = pd.read_sql(self.sector_history_table_name, con=self.postgresql_connection.engine).set_index("date")
+        self.sector_history_df = pd.read_sql(self.sector_history_table_name, con=self.postgresql_connection.engine).set_index("date").sort_index()
         self.s3_connection.upload_sql_table(
             self.sector_history_table_name,
             postgresql_connection=self.postgresql_connection,
