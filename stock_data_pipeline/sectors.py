@@ -159,7 +159,9 @@ class Sectors:
                 range_break_dates = [date for date in date_range if date not in dates]
 
                 range_break = True
-        figure = self.update_layout(figure, date_range_breaks=range_break_dates, x_min=x_min, x_max=x_max)
+        figure = self.update_layout(
+            figure, date_range_breaks=range_break_dates, x_min=x_min, x_max=x_max, title="SPDR Sector Prices", y_axis_title="Sector Price ($)"
+        )
         figure.write_image(Path(plot_directory, "calculated_sector_prices.jpeg"), format="jpeg", scale=5, engine="kaleido")
 
     def plot_percent_difference_graphs(self, plot_directory: str | Path, days: int) -> None:
@@ -176,7 +178,7 @@ class Sectors:
             start_sector_price = sector_prices[0]
             if start_sector_price is None:
                 continue
-            percent_sector_prices = [(sector_price - start_sector_price) / start_sector_price for sector_price in sector_prices]
+            percent_sector_prices = [(sector_price - start_sector_price) * 100 / start_sector_price for sector_price in sector_prices]
             figure.add_trace(
                 Scatter(
                     x=dates,
@@ -191,7 +193,14 @@ class Sectors:
                 x_min, x_max = self._get_date_limits(date_range)
                 range_break_dates = self._add_range_break_dates(dates, date_range)
                 range_break = True
-        figure = self.update_layout(figure, date_range_breaks=range_break_dates, x_min=x_min, x_max=x_max)
+        figure = self.update_layout(
+            figure,
+            date_range_breaks=range_break_dates,
+            x_min=x_min,
+            x_max=x_max,
+            title=f"SPDR Sectors {days}-Day Relative Price Movement",
+            y_axis_title="Percent Change (%)",
+        )
         figure.write_image(Path(plot_directory, f"percent_sector_prices_{days}_days.jpeg"), format="jpeg", scale=5, engine="kaleido")
 
     @staticmethod
@@ -210,14 +219,16 @@ class Sectors:
     def _add_range_break_dates(dates: pd.DatetimeIndex, date_range: pd.DatetimeIndex) -> pd.DatetimeIndex:
         return [date for date in date_range if date not in dates]
 
-    def update_layout(self, figure: Figure, date_range_breaks: List[pd.DatetimeIndex], x_min: pd.Timestamp, x_max: pd.Timestamp) -> Figure:
+    def update_layout(
+        self, figure: Figure, date_range_breaks: List[pd.DatetimeIndex], x_min: pd.Timestamp, x_max: pd.Timestamp, title: str, y_axis_title: str
+    ) -> Figure:
         Y_AXIS_TICK_FORMAT = ".4"
         GRID_LINES_COLOR = "rgba(128,128,128,0.3)"
         GRID_LINE_WIDTH = 1.5
         figure.update_layout(
             xaxis_title="Date",
-            yaxis_title="Sector Price ($)",
-            title="SPDR Sector Prices",
+            yaxis_title=y_axis_title,
+            title=title,
             title_x=0.5,
             showlegend=True,
             plot_bgcolor="white",
