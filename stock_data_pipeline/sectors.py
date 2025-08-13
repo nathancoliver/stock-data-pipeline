@@ -20,17 +20,17 @@ from .sector import Sector
 
 
 sector_color_map = {
-    "xlb": "#8a98c5",
-    "xlc": "#a967a6",
-    "xle": "#fec839",
-    "xlf": "#a9ce4f",
-    "xli": "#8cc6e9",
-    "xlk": "#92258b",
-    "xlp": "#01acba",
-    "xlre": "#a6011f",
-    "xlu": "#ff972a",
-    "xlv": "#01aeea",
-    "xly": "#c6c953",
+    "xlb": "#a6cee3",
+    "xlc": "#1f78b4",
+    "xle": "#b2df8a",
+    "xlf": "#33a02c",
+    "xli": "#fb9a99",
+    "xlk": "#e31a1c",
+    "xlp": "#fdbf6f",
+    "xlre": "#ff7f00",
+    "xlu": "#cab2d6",
+    "xlv": "#6a3d9a",
+    "xly": "#b15928",
 }
 
 
