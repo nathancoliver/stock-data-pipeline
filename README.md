@@ -3,3 +3,4 @@ Developed a stock data pipeline in Python to gather stock price data from the YF
 
 ![plot](data/calculated_sector_prices.jpeg)
 ![plot](data/percent_sector_prices_5_days.jpeg)
+![flowchart](flow_chart/flow_chart_v2.png)
