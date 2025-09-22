@@ -1,6 +1,5 @@
 # TODO: Add import of CollectDailyData and YFinance
 
-from .chrome_driver import ChromeDriver
 from .definitions import (
     DataTypes,
     SQLOperation,
