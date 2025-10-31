@@ -1,6 +1,9 @@
-# SPDR Sector Data Pipeline (In Progress)
+# SPDR Sector Data Pipeline
 Developed a stock data pipeline in Python to gather stock price data from the YFinance API, web scrape SPDR sector data, and transform the data using Pandas and PostgreSQL to calculate each of the 11 SPDR ETF prices. Built and tested the workflow locally, and currently migrating to GitHub Actions and AWS S3 to automate the process.
 
+![flowchart](flow_chart/flow_chart_v2.png)
 ![plot](data/calculated_sector_prices.jpeg)
 ![plot](data/percent_sector_prices_5_days.jpeg)
-![flowchart](flow_chart/flow_chart_v2.png)
+![plot](data/percent_sector_prices_10_days.jpeg)
+![plot](data/percent_sector_prices_20_days.jpeg)
+![plot](data/percent_sector_prices_50_days.jpeg)
