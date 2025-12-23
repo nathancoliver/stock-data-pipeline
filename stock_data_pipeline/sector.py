@@ -156,7 +156,7 @@ class Sector:
         df_sector_shares.columns = [column.lower().replace(" ", "_") for column in df_sector_shares.columns]
         df_sector_shares = df_sector_shares[df_sector_shares["ticker"] != "-"]  # TODO: Add note as to why this is removed
         df_sector_shares = df_sector_shares[df_sector_shares["ticker"].notna()]  # TODO: Add note as to why this is removed
-        df_sector_shares = df_sector_shares[~df_sector_shares["ticker"].str.contains(r"\d", na=False)]
+        df_sector_shares = df_sector_shares[~df_sector_shares["ticker"].str.contains(r"[0-9]", na=False)]
         df_sector_shares["ticker"] = [make_ticker_sql_compatible(ticker) for ticker in df_sector_shares["ticker"]]
         df_sector_shares = df_sector_shares.sort_values(by="ticker")
 
