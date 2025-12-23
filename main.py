@@ -129,6 +129,7 @@ if market_day:
         original_tickers = [column.replace("_shares", "", count=-1) for column in sector.sector_shares_df.columns]
 
         latest_sector_shares = sector.create_sector_shares_dataframe(todays_date)
+        print(latest_sector_shares.columns)
         latest_sector_shares.columns = [f"{column}_shares" for column in latest_sector_shares]
         latest_tickers = [column.replace("_shares", "", count=-1) for column in latest_sector_shares.columns]
         sector.old_tickers = [
